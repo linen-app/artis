@@ -1,7 +1,17 @@
 pragma solidity >=0.5.0 <0.6.0;
 
 import "../interfaces/ILender.sol";
-import "../interfaces/Compound.sol";
+import "../interfaces/IERC20.sol";
+
+contract MoneyMarket {
+    function supply(IERC20 asset, uint amount) public returns (uint);
+    function withdraw(IERC20 asset, uint requestedAmount) public returns (uint);
+    function borrow(IERC20 asset, uint amount) public returns (uint);
+    function repayBorrow(IERC20 asset, uint amount) public returns (uint);
+    function getAccountLiquidity(address account) view public returns (int);
+    function getSupplyBalance(address account, IERC20 asset) view public returns (uint);
+    function getBorrowBalance(address account, IERC20 asset) view public returns (uint);
+}
 
 contract CompoundLender is ILender {
     // 0x3fda67f7583380e67ef93072294a7fac882fd7e7 - mainnet

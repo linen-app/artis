@@ -2,7 +2,16 @@ pragma solidity >=0.5.0 <0.6.0;
 
 import "ds-math/math.sol";
 import "../interfaces/IPriceFeed.sol";
-import "../interfaces/Compound.sol";
+
+contract PriceOracle {
+    /**
+      * @notice retrieves price of an asset
+      * @dev function to get price for an asset
+      * @param asset Asset for which to get the price
+      * @return uint mantissa of asset price (scaled by 1e18) or zero if unset or contract paused
+      */
+    function getPrice(IERC20 asset) public view returns (uint);
+}
 
 contract CompoundPriceFeed is IPriceFeed, DSMath {
 
