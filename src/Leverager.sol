@@ -11,9 +11,9 @@ contract Leverager is DSMath {
     struct Position {
         bytes32 agreementId;
         address owner;
-        IERC20 heldToken;
+        address heldToken;
         uint heldAmount;
-        IERC20 principalToken;
+        address principalToken;
     }
 
     uint public positionsCount;
@@ -25,11 +25,13 @@ contract Leverager is DSMath {
         // IExchange exchange,
         // ILender lender,
         // IPriceFeed priceFeed,
-        IERC20 heldToken, 
-        uint depositAmount, 
-        IERC20 principalToken,
+        address heldToken, 
+        uint heldAmount, 
+        address principalToken,
         uint wadMaxBaseRatio
     );
+
+    event Iteration(uint num, uint recievedEthAmount);
 
     event PositionClosed(
         address indexed owner
@@ -37,67 +39,103 @@ contract Leverager is DSMath {
 
     // deposit token is a held token
     // FOR DELEGATECALL ONLY!
+    // addresses[0] = lender
+    // addresses[1] = exchange
+    // addresses[2] = priceFeed
+    // addresses[3] = heldToken
+    // addresses[4] = principalToken
+    // uints[0] =     initialDepositAmount
+    // uints[1] =     wadMaxBaseRatio
+    // uints[2] =     maxIterations
+    // uints[3] =     minCollateralEthAmount
+    // 
+    // arrays in params used to evade "stack too deep" during compilation
     function openShortPosition (
-        IExchange exchange,
-        ILender lender,
-        IPriceFeed priceFeed,
-        IERC20 heldToken, 
-        uint depositAmount, 
-        IERC20 principalToken,
-        uint wadMaxBaseRatio
+        address[5] calldata addresses,
+        uint[4] calldata uints
     ) external {
         positionsCount = add(positionsCount, 1);
         uint positionId = positionsCount;
-        
-        uint principalAmount = calcPrincipal(heldToken, depositAmount, principalToken, wadMaxBaseRatio, priceFeed);
+        uint recievedAmount = uints[0];
+        uint recievedEthAmount;
+        uint heldAmount = uints[0];
+        bytes32 agreementId;
 
-        heldToken.transferFrom(msg.sender, address(this), depositAmount);
+        IERC20(addresses[3]).transferFrom(msg.sender, address(this), uints[0]);
 
-        (bool supplyAndBorrowOk, bytes memory supplyAndBorrowRes) = address(lender).delegatecall(
-            abi.encodeWithSignature(
-                "supplyAndBorrow(bytes32,address,uint256,address,uint256)",
-                0, principalToken, principalAmount, heldToken, depositAmount
-            )
-        );
-        require(supplyAndBorrowOk);
-        bytes32 agreementId = _bytesToBytes32(supplyAndBorrowRes, 0);
-        
-        (bool swapOk, bytes memory swapRes) = address(exchange).delegatecall(
-            abi.encodeWithSignature(
-                "swap(address,uint256,address,uint256)",
-                principalToken, principalAmount, heldToken, 0
-            )
-        );
-        require(swapOk);
-        uint recievedAmount = uint(_bytesToBytes32(swapRes, 0));
+        for (uint i = 0; i < uints[2]; i++) {
+            uint principalAmount = calcPrincipal(IERC20(addresses[3]), recievedAmount, IERC20(addresses[4]), uints[1], IPriceFeed(addresses[2]));
 
-        uint heldAmount = add(depositAmount, recievedAmount);
+            bool ok;
+            bytes memory result;
+            (ok, result) = addresses[0].delegatecall(
+                abi.encodeWithSignature(
+                    "supplyAndBorrow(bytes32,address,uint256,address,uint256)",
+                    agreementId, addresses[4], principalAmount, addresses[3], recievedAmount
+                )
+            );
+            require(ok, "supplyAndBorrow failed");
+            agreementId = _bytesToBytes32(result);
+            
+            (ok, result) = addresses[1].delegatecall(
+                abi.encodeWithSignature(
+                    "swap(address,uint256,address,uint256)",
+                    addresses[4], principalAmount, addresses[3], 0
+                )
+            );
+            require(ok, "swap failed");
+            recievedAmount = uint(_bytesToBytes32(result));
+            recievedEthAmount = IPriceFeed(addresses[2]).convertAmountToETH(IERC20(addresses[3]), recievedAmount);
+            heldAmount += recievedAmount;
+
+            emit Iteration(i, recievedEthAmount);
+
+            if(recievedEthAmount < uints[3])
+                break;
+        }
+
         positions[positionId] = Position({
             agreementId: agreementId,
             owner: msg.sender,
-            heldToken: heldToken,
+            heldToken: addresses[3],
             heldAmount: heldAmount,
-            principalToken: principalToken
+            principalToken: addresses[4]
         });
 
-        emit PositionOpened(msg.sender, positionId, heldToken, depositAmount, principalToken, wadMaxBaseRatio);
+        emit PositionOpened(msg.sender, positionId, addresses[3], heldAmount, addresses[4], uints[1]);
     }
     
-    // IMPLEMENTATION IS NOT WORKING
     // FOR DELEGATECALL ONLY!
     // function closeShortPosition(
     //     bytes32 positionId,
-    //     IExchange exchange,
-    //     ILender lender
+    //     address exchange,
+    //     address lender,
+    //     uint maxIterations
     // ) external {
-    //     require(positions[positionId].owner == msg.sender, "The specified position doesn't exist or belongs to a different owner");
     //     Position storage position = positions[positionId];
 
-    //     uint owedAmount = lender.getOwedAmount(position.agreementId, position.principalToken);
+    //     for (var i = 0; i < maxIterations; i++) {
+    //         uint owedAmount = lender.getOwedAmount(position.agreementId, position.principalToken);
 
-    //     exchange.swap(position.heldToken, 0, position.principalToken, owedAmount);
+    //         bool ok;
+    //         bytes memory result;
+    //         (ok, result) = exchange.delegatecall(
+    //             abi.encodeWithSignature(
+    //                 "swap(address,uint256,address,uint256)",
+    //                 position.heldToken, 0, position.principalToken, owedAmount
+    //             )
+    //         );
+    //         require(ok, "swap failed");
+    //         recievedAmount = uint(_bytesToBytes32(result));
 
-    //     lender.repayAndReturn(position.agreementId, position.principalToken, uint(-1), position.heldToken, uint(-1));
+    //         (ok, result) = lender.delegatecall(
+    //             abi.encodeWithSignature(
+    //                 "repayAndReturn(bytes32,address,uint256,address,uint256)",
+    //                 position.agreementId, position.principalToken, uint(-1), position.heldToken, uint(-1)
+    //             )
+    //         );
+    //         require(ok, "supplyAndBorrow failed");
+    //     }
 
     //     delete positions[positionId];
         
@@ -117,12 +155,12 @@ contract Leverager is DSMath {
         principalAmount = priceFeed.convertAmountFromETH(principalToken, principalETH);
     }
 
-    function _bytesToBytes32(bytes memory b, uint offset) internal pure returns (bytes32) {
-        bytes32 out;
+    function _bytesToBytes32(bytes memory source) internal pure returns (bytes32 result) {
+        if (source.length == 0)
+            return 0x0;
 
-        for (uint i = 0; i < 32; i++) {
-            out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
+        assembly {
+            result := mload(add(source, 32))
         }
-        return out;
     }
 }
