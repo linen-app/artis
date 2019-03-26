@@ -33,5 +33,9 @@ contract CompoundPriceFeed is IPriceFeed, DSMath {
         uint price = priceOracle.getPrice(dstToken);
         dstAmount = wdiv(ethAmount, price);
     }
+
+    function convertAmount(IERC20 srcToken, uint srcAmount, IERC20 dstToken) external view returns (uint dstAmount){
+        revert("NOT IMPLEMENTED");
+    }
     
 }
