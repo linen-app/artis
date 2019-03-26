@@ -1,7 +1,7 @@
 pragma solidity >=0.5.0 <0.6.0;
 
 import "../interfaces/ILender.sol";
-import "../interfaces/IERC20.sol";
+import "../libraries/ERC20Lib.sol";
 
 contract MoneyMarket {
     function supply(IERC20 asset, uint amount) public returns (uint);
@@ -14,11 +14,13 @@ contract MoneyMarket {
 }
 
 contract CompoundLender is ILender {
-    // 0x3fda67f7583380e67ef93072294a7fac882fd7e7 - mainnet
+    using ERC20Lib for IERC20;
+
+    // 0x3FDA67f7583380E67ef93072294a7fAc882FD7E7 - mainnet
     // 0x75dc9d89d6e8b9e3790de5c1ae291334db5ddc45 - kovan
     // 0x61bbd7Bd5EE2A202d7e62519750170A52A8DFD45 - rinkeby
     
-    MoneyMarket constant compound = MoneyMarket(0x61bbd7Bd5EE2A202d7e62519750170A52A8DFD45);
+    MoneyMarket constant compound = MoneyMarket(0x3FDA67f7583380E67ef93072294a7fAc882FD7E7);
 
     event SupplyAndBorrow(address sender);
     event RepayAndReturn(address sender);
@@ -30,9 +32,9 @@ contract CompoundLender is ILender {
         IERC20 collateralToken,
         uint collateralAmount
     ) external returns (bytes32 _agreementId) {
-        _ensureApproval(collateralToken, address(compound));
-        compound.supply(collateralToken, collateralAmount);
-        compound.borrow(principalToken, principalAmount);
+        collateralToken.ensureApproval(address(compound));
+        require(compound.supply(collateralToken, collateralAmount) == 0, "compound.supply error");
+        require(compound.borrow(principalToken, principalAmount) == 0, "compound.borrow error");
 
         emit SupplyAndBorrow(msg.sender);
 
@@ -46,20 +48,14 @@ contract CompoundLender is ILender {
         IERC20 collateralToken,
         uint withdrawAmount
     ) external {
-        _ensureApproval(principalToken, address(compound));
-        compound.repayBorrow(principalToken, repaymentAmount);
-        compound.withdraw(collateralToken, withdrawAmount);
+        principalToken.ensureApproval(address(compound));
+        require(compound.repayBorrow(principalToken, repaymentAmount) == 0, "compound.repayBorrow error");
+        require(compound.withdraw(collateralToken, withdrawAmount) == 0, "compound.withdraw error");
 
         emit RepayAndReturn(msg.sender);
     }
 
     function getOwedAmount(bytes32 agreementId, IERC20 principalToken) external returns (uint) {
         compound.getBorrowBalance(address(uint(agreementId)), principalToken);
-    }
-
-    function _ensureApproval(IERC20 token, address spender) internal {
-        if (token.allowance(address(this), spender) != uint(-1)) {
-            require(token.approve(spender, uint(-1)));
-        }
     }
 }

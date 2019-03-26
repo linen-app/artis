@@ -10,6 +10,8 @@ interface ILender {
         IERC20 collateralToken,
         uint collateralAmount) external returns (bytes32 _agreementId);
 
+    // repaymentAmount: specify uint(-1) to repay all
+    // withdrawAmount: specify uint(-1) to return all 
     function repayAndReturn(
         bytes32 agreementId,
         IERC20 principalToken,
