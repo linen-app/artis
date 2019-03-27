@@ -146,19 +146,10 @@ contract Leverager is DSMath {
                 require(ok, "swap failed");
                 uint recievedAmount = uint(_bytesToBytes32(result));
 
-                // TODO: LENDER price feed
-                uint withdrawalAmount = calcFreeCollateral(
-                    position,
-                    owedAmountInPrincipalToken,
-                    recievedAmount,
-                    uints[1],
-                    IPriceFeed(addresses[2])
-                );
-
                 (ok, result) = addresses[0].delegatecall(
                     abi.encodeWithSignature(
                         "repayAndReturn(bytes32,address,uint256,address,uint256)",
-                        position.agreementId, position.principalToken, recievedAmount, position.heldToken, withdrawalAmount
+                        position.agreementId, position.principalToken, recievedAmount, position.heldToken, uints[1]
                     )
                 );
                 require(ok, "supplyAndBorrow failed");
@@ -192,6 +183,7 @@ contract Leverager is DSMath {
     }
 
     // determines how much we can borrow from a lender in order to maintain provided collateral ratio
+    // TODO: move to Lender?
     function calcPrincipal(
         IERC20 heldToken,
         uint depositAmount,
@@ -202,24 +194,6 @@ contract Leverager is DSMath {
         uint collateralETH = priceFeed.convertAmountToETH(heldToken, depositAmount);
         uint principalETH = wdiv(collateralETH, wadMaxBaseRatio);
         principalAmount = priceFeed.convertAmountFromETH(principalToken, principalETH);
-    }
-
-    // TODO: should we move it to the Lender?
-    function calcFreeCollateral(
-        Position storage position,
-        uint currentDebt,
-        uint repaymentAmountInPrincipalToken,
-        uint wadMaxBaseRatio,
-        IPriceFeed priceFeed
-    ) internal view returns (uint freeCollateralAmount){
-        // freeCollateral = heldCollateral - neededCollateral
-        // neededCollateral = remainingPrincipal * collRatio
-        // remainingPrincipal = currentPrincipal - repaymentAmount
-        uint remainingDebt = sub(currentDebt, repaymentAmountInPrincipalToken);
-        uint remainingDebtETH = priceFeed.convertAmountToETH(position.principalToken, remainingDebt);
-        uint neededCollateralETH = wmul(remainingDebtETH, wadMaxBaseRatio);
-        uint neededCollateral = priceFeed.convertAmountFromETH(position.heldToken, neededCollateralETH);
-        freeCollateralAmount = sub(position.heldAmount, neededCollateral);
     }
 
     function _bytesToBytes32(bytes memory source) internal pure returns (bytes32 result) {

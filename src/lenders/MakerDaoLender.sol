@@ -8,7 +8,13 @@ interface DSValue {
     function peek() external view returns (bytes32, bool);
 }
 
+interface Vox {
+    function par() external returns (uint);
+}
+
 interface ISaiTub {
+    function vox() external view returns (Vox);     // Target price feed
+
     function sai() external view returns (IERC20);  // Stablecoin
     function sin() external view returns (IERC20);  // Debt (negative sai)
     function skr() external view returns (IERC20);  // Abstracted collateral
@@ -25,6 +31,7 @@ interface ISaiTub {
     function wipe(bytes32 cup, uint wad) external;
     function shut(bytes32 cup) external;
     function per() external view returns (uint ray);
+    function tag() external view returns (uint wad);
     function lad(bytes32 cup) external view returns (address);
     
     function tab(bytes32 cup) external returns (uint);
@@ -34,7 +41,6 @@ interface ISaiTub {
     function fee() external view returns (uint);    // Governance fee
     function pep() external view returns (DSValue); // Governance price feed
     function cap() external view returns (uint); // Debt ceiling
-    
 
     function cups(bytes32) external view returns (address, uint, uint, uint);
 }
@@ -83,7 +89,7 @@ contract MakerDaoLender is ILender, DSMath {
         IERC20 principalToken,
         uint repaymentAmount,
         IERC20 collateralToken,
-        uint withdrawAmount)
+        uint wadNewCollateralRatio)
     external {
         IERC20 weth = saiTub.gem();
         IERC20 peth = saiTub.skr();
@@ -106,17 +112,15 @@ contract MakerDaoLender is ILender, DSMath {
 
 
         uint pethAmount;
-        if (withdrawAmount == uint(-1)) {
+        if (wadNewCollateralRatio == uint(-1)) {
             // return all collateral
             pethAmount = saiTub.ink(agreementId);
         } else {
-            pethAmount = pethForWeth(withdrawAmount);
+            pethAmount = calcFreeCollateral(agreementId, wadNewCollateralRatio);
         }
         saiTub.free(agreementId, pethAmount);
         peth.ensureApproval(address(saiTub));
         saiTub.exit(pethAmount);
-
-        //_wethAmount = wethForPeth(pethAmount);
 
         emit RepayAndReturn(msg.sender);
     }
@@ -125,6 +129,18 @@ contract MakerDaoLender is ILender, DSMath {
         require(address(principalToken) == address(saiTub.sai()));
 
         return add(saiTub.rap(agreementId), saiTub.tab(agreementId));
+    }
+
+    function calcFreeCollateral(
+        bytes32 agreementId,
+        uint wadNewCollateralRatio
+    ) internal returns (uint freeCollateralAmount) {
+        uint collPrice = saiTub.tag();
+        uint heldCollateralRef = rmul(collPrice, saiTub.ink(agreementId));
+        uint effectiveDebtRef = rmul(saiTub.vox().par(), saiTub.tab(agreementId));
+        uint neededCollateralRef = wmul(effectiveDebtRef, wadNewCollateralRatio);
+        uint freeCollateralRef = sub(heldCollateralRef, neededCollateralRef);
+        freeCollateralAmount = rdiv(freeCollateralRef, collPrice);
     }
 
     function pethForWeth(uint wethAmount) internal view returns (uint) {
