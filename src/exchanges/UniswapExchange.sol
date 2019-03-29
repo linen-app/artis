@@ -55,6 +55,7 @@ contract UniswapExchange is IExchange {
             }
 
         } else if (address(dstToken) == address(weth)) {
+            srcToken.ensureApproval(address(srcExchange));
             uint ethAmount;
             if (srcAmount == 0) {
                 ethAmount = srcExchange.tokenToEthSwapOutput(dstAmount, uint(-1), deadline);

@@ -2,6 +2,7 @@ pragma solidity >=0.5.0 <0.6.0;
 
 import "ds-math/math.sol";
 import "../interfaces/ILender.sol";
+import "../interfaces/IExchange.sol";
 import "../libraries/ERC20Lib.sol";
 
 interface DSValue {
@@ -13,18 +14,9 @@ interface Vox {
 }
 
 interface ISaiTub {
-    function vox() external view returns (Vox);     // Target price feed
-
-    function sai() external view returns (IERC20);  // Stablecoin
-    function sin() external view returns (IERC20);  // Debt (negative sai)
-    function skr() external view returns (IERC20);  // Abstracted collateral
-    function gem() external view returns (IERC20);  // Underlying collateral
-    function gov() external view returns (IERC20);  // Governance token
-
     function open() external returns (bytes32 cup);
     function join(uint wad) external;
     function exit(uint wad) external;
-    function give(bytes32 cup, address guy) external;
     function lock(bytes32 cup, uint wad) external;
     function free(bytes32 cup, uint wad) external;
     function draw(bytes32 cup, uint wad) external;
@@ -32,17 +24,11 @@ interface ISaiTub {
     function shut(bytes32 cup) external;
     function per() external view returns (uint ray);
     function tag() external view returns (uint wad);
-    function lad(bytes32 cup) external view returns (address);
     
     function tab(bytes32 cup) external returns (uint);
     function rap(bytes32 cup) external returns (uint);
     function ink(bytes32 cup) external view returns (uint);
     function mat() external view returns (uint);    // Liquidation ratio
-    function fee() external view returns (uint);    // Governance fee
-    function pep() external view returns (DSValue); // Governance price feed
-    function cap() external view returns (uint); // Debt ceiling
-
-    function cups(bytes32) external view returns (address, uint, uint, uint);
 }
 
 contract MakerDaoLender is ILender, DSMath {
@@ -56,6 +42,8 @@ contract MakerDaoLender is ILender, DSMath {
     IERC20 constant peth = IERC20(0xf53AD2c6851052A81B42133467480961B2321C09);
     IERC20 constant dai = IERC20(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359);
     IERC20 constant mkr = IERC20(0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2);
+    DSValue constant pep = DSValue(0x99041F808D598B782D5a3e498681C2452A31da08);
+    IExchange constant exchange = IExchange(xxx);
 
     event SupplyAndBorrow(address sender);
     event RepayAndReturn(address sender);
@@ -76,12 +64,12 @@ contract MakerDaoLender is ILender, DSMath {
         }
 
         weth.ensureApproval(address(saiTub));
-        uint pethAmount = pethForWeth(collateralAmount);
+        uint pethAmount = _pethForWeth(collateralAmount);
         saiTub.join(pethAmount);
         peth.ensureApproval(address(saiTub));
         saiTub.lock(_agreementId, pethAmount);
 
-        _principalAmount = calcPrincipal(pethAmount, wadCollateralRatio);
+        _principalAmount = _calcPrincipal(pethAmount, wadCollateralRatio);
         saiTub.draw(_agreementId, _principalAmount);
 
         emit SupplyAndBorrow(msg.sender);
@@ -104,8 +92,14 @@ contract MakerDaoLender is ILender, DSMath {
             // repay all outstanding debt
             _daiAmount = saiTub.tab(agreementId);
         }
-        // uint govFeeAmount = _calcGovernanceFee(agreementId, _daiAmount);
-        // _handleGovFee(govFeeAmount, payFeeInDai);
+        uint govFeeAmount = _calcGovernanceFee(agreementId, _daiAmount);
+        (bool ok,) = address(exchange).delegatecall(
+            abi.encodeWithSignature(
+                "swap(address,uint256,address,uint256)",
+                address(dai), 0, address(mkr), govFeeAmount
+            )
+        );
+        require(ok, "swap failed");
         saiTub.wipe(agreementId, _daiAmount);
 
 
@@ -114,7 +108,7 @@ contract MakerDaoLender is ILender, DSMath {
             // return all collateral
             pethAmount = saiTub.ink(agreementId);
         } else {
-            pethAmount = calcFreeCollateral(agreementId, wadCollateralRatio);
+            pethAmount = _calcFreeCollateral(agreementId, wadCollateralRatio);
         }
         saiTub.free(agreementId, pethAmount);
         peth.ensureApproval(address(saiTub));
@@ -124,13 +118,21 @@ contract MakerDaoLender is ILender, DSMath {
     }
 
     function getOwedAmount(bytes32 agreementId, IERC20 principalToken) external returns (uint) {
-        require(address(principalToken) == address(saiTub.sai()));
+        require(address(principalToken) == address(dai));
 
         return add(saiTub.rap(agreementId), saiTub.tab(agreementId));
     }
 
+    function _calcGovernanceFee(bytes32 agreementId, uint daiAmount) internal returns (uint mkrFeeAmount) {
+        uint daiFeeAmount = rmul(daiAmount, rdiv(saiTub.rap(agreementId), saiTub.tab(agreementId)));
+        (bytes32 val, bool ok) = pep.peek();
+        require(ok && val != 0, 'Unable to get mkr rate');
+
+        return wdiv(daiFeeAmount, uint(val));
+    }
+
     // determines how much we can borrow from a lender in order to maintain provided collateral ratio
-    function calcPrincipal(
+    function _calcPrincipal(
         uint pethAmount,
         uint wadMaxBaseRatio
     ) internal returns (uint principalAmount){
@@ -139,7 +141,7 @@ contract MakerDaoLender is ILender, DSMath {
         principalAmount = rdiv(principalRef, vox.par());
     }
 
-    function calcFreeCollateral(
+    function _calcFreeCollateral(
         bytes32 agreementId,
         uint wadCollateralRatio
     ) internal returns (uint freePethAmount) {
@@ -151,7 +153,7 @@ contract MakerDaoLender is ILender, DSMath {
         freePethAmount = rdiv(freeCollateralRef, collPrice);
     }
 
-    function pethForWeth(uint wethAmount) internal view returns (uint) {
+    function _pethForWeth(uint wethAmount) internal view returns (uint) {
         return rdiv(wethAmount, saiTub.per());
     }
 }
