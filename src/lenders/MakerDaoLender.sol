@@ -51,6 +51,11 @@ contract MakerDaoLender is ILender, DSMath {
     // 0x448a5065aeBB8E423F0896E6c5D525C040f59af3 - mainnet
 
     ISaiTub constant saiTub = ISaiTub(0x448a5065aeBB8E423F0896E6c5D525C040f59af3);
+    Vox constant vox = Vox(0x9B0F70Df76165442ca6092939132bBAEA77f2d7A);
+    IERC20 constant weth = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    IERC20 constant peth = IERC20(0xf53AD2c6851052A81B42133467480961B2321C09);
+    IERC20 constant dai = IERC20(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359);
+    IERC20 constant mkr = IERC20(0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2);
 
     event SupplyAndBorrow(address sender);
     event RepayAndReturn(address sender);
@@ -58,14 +63,10 @@ contract MakerDaoLender is ILender, DSMath {
     function supplyAndBorrow(
         bytes32 agreementId,
         IERC20 principalToken,
-        uint principalAmount,
+        uint wadCollateralRatio,
         IERC20 collateralToken,
         uint collateralAmount)
-    external returns (bytes32 _agreementId) {
-        IERC20 weth = saiTub.gem();
-        IERC20 peth = saiTub.skr();
-        IERC20 dai = saiTub.sai();
-
+    external returns (bytes32 _agreementId, uint _principalAmount) {
         require(address(collateralToken) == address(weth));
         require(address(principalToken) == address(dai));
 
@@ -79,7 +80,9 @@ contract MakerDaoLender is ILender, DSMath {
         saiTub.join(pethAmount);
         peth.ensureApproval(address(saiTub));
         saiTub.lock(_agreementId, pethAmount);
-        saiTub.draw(_agreementId, principalAmount);
+
+        _principalAmount = calcPrincipal(pethAmount, wadCollateralRatio);
+        saiTub.draw(_agreementId, _principalAmount);
 
         emit SupplyAndBorrow(msg.sender);
     }
@@ -89,13 +92,8 @@ contract MakerDaoLender is ILender, DSMath {
         IERC20 principalToken,
         uint repaymentAmount,
         IERC20 collateralToken,
-        uint wadNewCollateralRatio)
+        uint wadCollateralRatio)
     external {
-        IERC20 weth = saiTub.gem();
-        IERC20 peth = saiTub.skr();
-        IERC20 dai = saiTub.sai();
-        IERC20 mkr = saiTub.gov();
-
         require(address(collateralToken) == address(weth));
         require(address(principalToken) == address(dai));
 
@@ -112,11 +110,11 @@ contract MakerDaoLender is ILender, DSMath {
 
 
         uint pethAmount;
-        if (wadNewCollateralRatio == uint(-1)) {
+        if (wadCollateralRatio == uint(-1)) {
             // return all collateral
             pethAmount = saiTub.ink(agreementId);
         } else {
-            pethAmount = calcFreeCollateral(agreementId, wadNewCollateralRatio);
+            pethAmount = calcFreeCollateral(agreementId, wadCollateralRatio);
         }
         saiTub.free(agreementId, pethAmount);
         peth.ensureApproval(address(saiTub));
@@ -131,16 +129,26 @@ contract MakerDaoLender is ILender, DSMath {
         return add(saiTub.rap(agreementId), saiTub.tab(agreementId));
     }
 
+    // determines how much we can borrow from a lender in order to maintain provided collateral ratio
+    function calcPrincipal(
+        uint pethAmount,
+        uint wadMaxBaseRatio
+    ) internal returns (uint principalAmount){
+        uint collateralRef = rmul(saiTub.tag(), pethAmount);
+        uint principalRef = wdiv(collateralRef, wadMaxBaseRatio);
+        principalAmount = rdiv(principalRef, vox.par());
+    }
+
     function calcFreeCollateral(
         bytes32 agreementId,
-        uint wadNewCollateralRatio
-    ) internal returns (uint freeCollateralAmount) {
+        uint wadCollateralRatio
+    ) internal returns (uint freePethAmount) {
         uint collPrice = saiTub.tag();
         uint heldCollateralRef = rmul(collPrice, saiTub.ink(agreementId));
-        uint effectiveDebtRef = rmul(saiTub.vox().par(), saiTub.tab(agreementId));
-        uint neededCollateralRef = wmul(effectiveDebtRef, wadNewCollateralRatio);
+        uint effectiveDebtRef = rmul(vox.par(), saiTub.tab(agreementId));
+        uint neededCollateralRef = wmul(effectiveDebtRef, wadCollateralRatio);
         uint freeCollateralRef = sub(heldCollateralRef, neededCollateralRef);
-        freeCollateralAmount = rdiv(freeCollateralRef, collPrice);
+        freePethAmount = rdiv(freeCollateralRef, collPrice);
     }
 
     function pethForWeth(uint wethAmount) internal view returns (uint) {

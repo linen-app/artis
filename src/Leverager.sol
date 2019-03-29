@@ -65,18 +65,17 @@ contract Leverager is DSMath {
         IERC20(addresses[3]).transferFrom(msg.sender, address(this), uints[0]);
 
         for (uint i = 0; i < uints[2]; i++) {
-            uint principalAmount = calcPrincipal(IERC20(addresses[3]), recievedAmount, IERC20(addresses[4]), uints[1], IPriceFeed(addresses[2]));
-
             bool ok;
             bytes memory result;
             (ok, result) = addresses[0].delegatecall(
                 abi.encodeWithSignature(
                     "supplyAndBorrow(bytes32,address,uint256,address,uint256)",
-                    agreementId, addresses[4], principalAmount, addresses[3], recievedAmount
+                    agreementId, addresses[4], uints[1], addresses[3], recievedAmount
                 )
             );
             require(ok, "supplyAndBorrow failed");
-            agreementId = _bytesToBytes32(result);
+            agreementId = _bytesToBytes32(result, 0);
+            uint principalAmount = uint(_bytesToBytes32(result, 32));
             
             (ok, result) = addresses[1].delegatecall(
                 abi.encodeWithSignature(
@@ -85,7 +84,7 @@ contract Leverager is DSMath {
                 )
             );
             require(ok, "swap failed");
-            recievedAmount = uint(_bytesToBytes32(result));
+            recievedAmount = uint(_bytesToBytes32(result, 0));
             recievedEthAmount = IPriceFeed(addresses[2]).convertAmountToETH(IERC20(addresses[3]), recievedAmount);
             heldAmount += recievedAmount;
 
@@ -127,6 +126,7 @@ contract Leverager is DSMath {
         Position storage position = positions[uints[0]];
 
         for (uint i = 0; i < uints[2]; i++) {
+            // Should it include interest?
             uint owedAmountInPrincipalToken = ILender(addresses[0]).getOwedAmount(position.agreementId, position.principalToken);
 
             // TODO: EXCHANGE price feed
@@ -144,7 +144,7 @@ contract Leverager is DSMath {
                     )
                 );
                 require(ok, "swap failed");
-                uint recievedAmount = uint(_bytesToBytes32(result));
+                uint recievedAmount = uint(_bytesToBytes32(result, 0));
 
                 (ok, result) = addresses[0].delegatecall(
                     abi.encodeWithSignature(
@@ -163,7 +163,7 @@ contract Leverager is DSMath {
                     )
                 );
                 require(ok, "swap failed");
-                uint recievedAmount = uint(_bytesToBytes32(result));
+                uint recievedAmount = uint(_bytesToBytes32(result, 0));
 
                 (ok, result) = addresses[0].delegatecall(
                     abi.encodeWithSignature(
@@ -182,26 +182,12 @@ contract Leverager is DSMath {
         emit PositionClosed(msg.sender, uints[0]);
     }
 
-    // determines how much we can borrow from a lender in order to maintain provided collateral ratio
-    // TODO: move to Lender?
-    function calcPrincipal(
-        IERC20 heldToken,
-        uint depositAmount,
-        IERC20 principalToken,
-        uint wadMaxBaseRatio,
-        IPriceFeed priceFeed
-    ) public view returns (uint principalAmount){
-        uint collateralETH = priceFeed.convertAmountToETH(heldToken, depositAmount);
-        uint principalETH = wdiv(collateralETH, wadMaxBaseRatio);
-        principalAmount = priceFeed.convertAmountFromETH(principalToken, principalETH);
-    }
-
-    function _bytesToBytes32(bytes memory source) internal pure returns (bytes32 result) {
+    function _bytesToBytes32(bytes memory source, uint offset) internal pure returns (bytes32 result) {
         if (source.length == 0)
             return 0x0;
 
         assembly {
-            result := mload(add(source, 32))
+            result := mload(add(source, add(32, offset)))
         }
     }
 }

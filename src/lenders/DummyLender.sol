@@ -13,10 +13,10 @@ contract DummyLender is ILender {
         uint principalAmount,
         IERC20 collateralToken,
         uint collateralAmount)
-    external returns (bytes32 _agreementId) {
+    external returns (bytes32 _agreementId, uint _principalAmount) {
         emit SupplyAndBorrow(msg.sender);
 
-        return 0;
+        return (0, 0);
     }
 
     function repayAndReturn(
