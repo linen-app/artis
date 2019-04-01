@@ -3,7 +3,6 @@ pragma solidity >=0.5.0 <0.6.0;
 import "ds-math/math.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IExchange.sol";
-import "./interfaces/IPriceFeed.sol";
 import "./interfaces/ILender.sol";
 
 contract Leverager is DSMath {
@@ -24,7 +23,6 @@ contract Leverager is DSMath {
         uint positionId,
         // IExchange exchange,
         // ILender lender,
-        // IPriceFeed priceFeed,
         address heldToken, 
         uint heldAmount, 
         address principalToken,
@@ -42,27 +40,25 @@ contract Leverager is DSMath {
     // FOR DELEGATECALL ONLY!
     // addresses[0] = lender
     // addresses[1] = exchange
-    // addresses[2] = priceFeed
-    // addresses[3] = heldToken
-    // addresses[4] = principalToken
+    // addresses[2] = heldToken
+    // addresses[3] = principalToken
     // uints[0] =     initialDepositAmount
     // uints[1] =     wadMaxBaseRatio
     // uints[2] =     maxIterations
-    // uints[3] =     minCollateralEthAmount
+    // uints[3] =     minCollateralAmount
     // 
     // arrays in params used to evade "stack too deep" during compilation
     function openShortPosition (
-        address[5] calldata addresses,
+        address[4] calldata addresses,
         uint[4] calldata uints
     ) external {
         positionsCount = add(positionsCount, 1);
         uint positionId = positionsCount;
         uint recievedAmount = uints[0];
-        uint recievedEthAmount;
         uint heldAmount = uints[0];
         bytes32 agreementId;
 
-        IERC20(addresses[3]).transferFrom(msg.sender, address(this), uints[0]);
+        IERC20(addresses[2]).transferFrom(msg.sender, address(this), uints[0]);
 
         for (uint i = 0; i < uints[2]; i++) {
             bool ok;
@@ -70,7 +66,7 @@ contract Leverager is DSMath {
             (ok, result) = addresses[0].delegatecall(
                 abi.encodeWithSignature(
                     "supplyAndBorrow(bytes32,address,uint256,address,uint256)",
-                    agreementId, addresses[4], uints[1], addresses[3], recievedAmount
+                    agreementId, addresses[3], uints[1], addresses[2], recievedAmount
                 )
             );
             require(ok, "supplyAndBorrow failed");
@@ -80,40 +76,38 @@ contract Leverager is DSMath {
             (ok, result) = addresses[1].delegatecall(
                 abi.encodeWithSignature(
                     "swap(address,uint256,address,uint256)",
-                    addresses[4], principalAmount, addresses[3], 0
+                    addresses[3], principalAmount, addresses[2], 0
                 )
             );
             require(ok, "swap failed");
             recievedAmount = uint(_bytesToBytes32(result, 0));
-            recievedEthAmount = IPriceFeed(addresses[2]).convertAmountToETH(IERC20(addresses[3]), recievedAmount);
             heldAmount += recievedAmount;
 
-            emit Iteration(i, recievedEthAmount);
+            emit Iteration(i, recievedAmount);
 
-            if(recievedEthAmount < uints[3])
+            if(recievedAmount < uints[3])
                 break;
         }
 
         positions[positionId] = Position({
             agreementId: agreementId,
             owner: msg.sender,
-            heldToken: IERC20(addresses[3]),
+            heldToken: IERC20(addresses[2]),
             heldAmount: heldAmount,
-            principalToken: IERC20(addresses[4])
+            principalToken: IERC20(addresses[3])
         });
 
-        emit PositionOpened(msg.sender, positionId, addresses[3], heldAmount, addresses[4], uints[1]);
+        emit PositionOpened(msg.sender, positionId, addresses[2], heldAmount, addresses[3], uints[1]);
     }
     
     // FOR DELEGATECALL ONLY!
     // addresses[0] = lender
     // addresses[1] = exchange
-    // addresses[2] = priceFeed
     // uints[0] =     positionId
     // uints[1] =     wadMaxBaseRatio
     // uints[2] =     maxIterations
     function closeShortPosition(
-        address[3] calldata addresses,
+        address[2] calldata addresses,
         uint[3] calldata uints
     ) external {
 
@@ -130,7 +124,7 @@ contract Leverager is DSMath {
             uint owedAmountInPrincipalToken = ILender(addresses[0]).getOwedAmount(position.agreementId, position.principalToken);
 
             // TODO: EXCHANGE price feed
-            uint owedAmountInHeldToken = IPriceFeed(addresses[2]).convertAmount(position.principalToken, owedAmountInPrincipalToken, position.heldToken);
+            uint owedAmountInHeldToken = IExchange(addresses[1]).convertAmountDst(position.heldToken, position.principalToken, owedAmountInPrincipalToken);
             uint heldTokenBalance = position.heldToken.balanceOf(address(this));
 
             // do we have enough tokens to repay all debt?
@@ -163,7 +157,6 @@ contract Leverager is DSMath {
                     )
                 );
                 require(ok, "swap failed");
-                uint recievedAmount = uint(_bytesToBytes32(result, 0));
 
                 (ok, result) = addresses[0].delegatecall(
                     abi.encodeWithSignature(
