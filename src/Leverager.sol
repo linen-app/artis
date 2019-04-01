@@ -13,6 +13,7 @@ contract Leverager is DSMath {
         IERC20 heldToken;
         uint heldAmount;
         IERC20 principalToken;
+        bool isClosed;
     }
 
     uint public positionsCount;
@@ -94,7 +95,8 @@ contract Leverager is DSMath {
             owner: msg.sender,
             heldToken: IERC20(addresses[2]),
             heldAmount: heldAmount,
-            principalToken: IERC20(addresses[3])
+            principalToken: IERC20(addresses[3]),
+            isClosed: false
         });
 
         emit PositionOpened(msg.sender, positionId, addresses[2], heldAmount, addresses[3], uints[1]);
@@ -170,7 +172,7 @@ contract Leverager is DSMath {
             }
         }
 
-        delete positions[uints[0]];
+        positions[uints[0]].isClosed = true;
         
         emit PositionClosed(msg.sender, uints[0]);
     }
