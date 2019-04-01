@@ -43,7 +43,7 @@ contract MakerDaoLender is ILender, DSMath {
     IERC20 constant dai = IERC20(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359);
     IERC20 constant mkr = IERC20(0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2);
     DSValue constant pep = DSValue(0x99041F808D598B782D5a3e498681C2452A31da08);
-    IExchange constant exchange = IExchange(0x2abE91be38562C3CbdF6aB395a08954835C378AD);
+    IExchange constant exchange = IExchange(0xCa3c70F65F8E9dac0AC3527Af980B1D914f9c7c2);
 
     event SupplyAndBorrow(address sender);
     event RepayAndReturn(address sender);
@@ -88,20 +88,28 @@ contract MakerDaoLender is ILender, DSMath {
         dai.ensureApproval(address(saiTub));
         mkr.ensureApproval(address(saiTub));
         uint _daiAmount = repaymentAmount;
-        if (_daiAmount == uint(- 1)) {
+        bool repayAll = repaymentAmount == uint(-1);
+        if (repayAll) {
             // repay all outstanding debt
             _daiAmount = saiTub.tab(agreementId);
         }
         uint govFeeAmount = _calcGovernanceFee(agreementId, _daiAmount);
-        (bool ok,) = address(exchange).delegatecall(
-            abi.encodeWithSignature(
-                "swap(address,uint256,address,uint256)",
-                address(dai), 0, address(mkr), govFeeAmount
-            )
-        );
-        require(ok, "swap failed");
-        saiTub.wipe(agreementId, _daiAmount);
 
+        uint mkrBalance = mkr.balanceOf(address(this));
+        uint spentDai;
+        if (mkrBalance < govFeeAmount){
+            uint neededMkr = sub(govFeeAmount, mkrBalance);
+            (bool ok, bytes memory result) = address(exchange).delegatecall(
+                abi.encodeWithSignature(
+                    "swap(address,uint256,address,uint256)",
+                    address(dai), 0, address(mkr), neededMkr
+                )
+            );
+            require(ok, "swap failed");
+            spentDai = uint(_bytesToBytes32(result, 0));
+        }
+        uint remainingDai = repayAll ? _daiAmount : sub(_daiAmount, spentDai);
+        saiTub.wipe(agreementId, remainingDai);
 
         uint pethAmount;
         if (wadCollateralRatio == uint(-1)) {
@@ -121,9 +129,13 @@ contract MakerDaoLender is ILender, DSMath {
         require(address(principalToken) == address(dai));
 
         uint daiOwed = saiTub.tab(agreementId);
+        uint mkrBalance = mkr.balanceOf(address(this));
         uint govFeeAmount = _calcGovernanceFee(agreementId, daiOwed);
-        uint daiFeeAmount = exchange.convertAmountDst(dai, mkr, govFeeAmount);
 
+        if (mkrBalance >= govFeeAmount)
+            return daiOwed;
+
+        uint daiFeeAmount = exchange.convertAmountDst(dai, mkr, sub(govFeeAmount, mkrBalance));
         return add(daiOwed, daiFeeAmount);
     }
 
@@ -159,5 +171,14 @@ contract MakerDaoLender is ILender, DSMath {
 
     function _pethForWeth(uint wethAmount) internal view returns (uint) {
         return rdiv(wethAmount, saiTub.per());
+    }
+
+    function _bytesToBytes32(bytes memory source, uint offset) internal pure returns (bytes32 result) {
+        if (source.length == 0)
+            return 0x0;
+
+        assembly {
+            result := mload(add(source, add(32, offset)))
+        }
     }
 }
