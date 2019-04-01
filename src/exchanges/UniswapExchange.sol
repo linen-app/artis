@@ -80,11 +80,13 @@ contract UniswapExchange is IExchange {
         uint deadline = now;
 
         if (address(srcToken) == address(weth)) {
-            weth.withdraw(srcAmount);
             if (srcAmount == 0) {
-                return dstExchange.ethToTokenSwapOutput(dstAmount, deadline);
+                uint ethNeeded = dstExchange.getEthToTokenOutputPrice(dstAmount);
+                weth.withdraw(ethNeeded);
+                return dstExchange.ethToTokenSwapOutput.value(ethNeeded)(dstAmount, deadline);
             } else if (dstAmount == 0) {
-                return dstExchange.ethToTokenSwapInput(srcAmount, deadline);
+                weth.withdraw(srcAmount);
+                return dstExchange.ethToTokenSwapInput.value(srcAmount)(1, deadline);
             } else {
                 revert("Either srcAmount or dstAmount must be 0");
             }
