@@ -43,7 +43,7 @@ contract MakerDaoLender is ILender, DSMath {
     IERC20 constant dai = IERC20(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359);
     IERC20 constant mkr = IERC20(0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2);
     DSValue constant pep = DSValue(0x99041F808D598B782D5a3e498681C2452A31da08);
-    IExchange constant exchange = IExchange(xxx);
+    IExchange constant exchange = IExchange(0x2abE91be38562C3CbdF6aB395a08954835C378AD);
 
     event SupplyAndBorrow(address sender);
     event RepayAndReturn(address sender);
@@ -120,7 +120,11 @@ contract MakerDaoLender is ILender, DSMath {
     function getOwedAmount(bytes32 agreementId, IERC20 principalToken) external returns (uint) {
         require(address(principalToken) == address(dai));
 
-        return add(saiTub.rap(agreementId), saiTub.tab(agreementId));
+        uint daiOwed = saiTub.tab(agreementId);
+        uint govFeeAmount = _calcGovernanceFee(agreementId, daiOwed);
+        uint daiFeeAmount = exchange.convertAmountDst(dai, mkr, govFeeAmount);
+
+        return add(daiOwed, daiFeeAmount);
     }
 
     function _calcGovernanceFee(bytes32 agreementId, uint daiAmount) internal returns (uint mkrFeeAmount) {
