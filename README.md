@@ -14,7 +14,7 @@ Other token pairs will come once more lending protocols will be integrated.
 
 ### Prerequisites
 - Ethereum account with initial deposit (in ETH or WETH token)
-- [Seth](https://github.com/dapphub/dapptools/tree/master/src/seth) command line tool, with access to the abovementioned account.
+- [Seth](https://dapp.tools/seth) command line tool, with access to the abovementioned account. Seth docs can be found [here](https://github.com/dapphub/dapptools/tree/master/src/seth)
 
 Example of `~/.sethrc` file with Seth settings
 ```
@@ -62,12 +62,33 @@ AMOUNT=1
 
 Smaller values will give you more leverage, however they give you more risk of liquidation: in case if ETH will go down relatively to DAI and your initial deposit becomes too small to cover minimal collateral ratio and your initial deposit will be seized.
 
+Minimal amount: 1.5 (very risky). Recommended amount: 1.7
+
+Max theoretical leverage table:
+
+| Leverage | Collateral ratio |
+| ----------- | ----------- |
+| ~3x | 1.5 |
+| ~2.66x | 1.6 |
+| ~2.43x | 1.7 |
+| ~2.25x | 1.8 |
+| ~2.11x | 1.9 |
+| ~2.00x | 2.0 |
+| Paragraph | Text |
+
 ```
 COLL_RATIO=1.7
 ```
 #### 3. Send `openPosition` transaction
+The transaction will go through proxy wallet, so the calldata needs to be formed manually
 ```
+# Calculate function signature
 SIG=`seth sig "openPosition(address[4],uint256[4])"`
-CALLDATA=`echo $SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $PRINCIPAL)$(toRawAmount 0 eth)$(toRawAmount $COLL_RATIO eth)$MAX_ITERATIONS$MIN_COLLATERAL_AMOUNT`
+
+# Form calldata for Artis contract
+CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $PRINCIPAL)\
+$(toRawAmount 0 eth)$(toRawAmount $COLL_RATIO eth)$MAX_ITERATIONS$MIN_COLLATERAL_AMOUNT"
+
+# Send transaction to your proxy wallet
 seth send --value $(toRawAmount $AMOUNT eth) "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
 ```
