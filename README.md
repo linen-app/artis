@@ -2,7 +2,7 @@
 
 The solution to execute decentralized margin trading on DEXes.
 
-It works with Uniswap and MakerDAO.
+It works with [Uniswap](https://uniswap.io/) and [MakerDAO](https://makerdao.com).
 
 More DEXes and lending protocols are coming.
 
@@ -28,7 +28,7 @@ export ETH_PASSWORD=<path to a file with password to your keystore file>
 ```
 ### Steps
 
-1. If you used [CDP portal](https://cdp.makerdao.com) before, you most probably already have a proxy wallet, and you can use it for Artis.
+#### 1. If you used [CDP portal](https://cdp.makerdao.com) before, you most probably already have a proxy wallet, and you can use it for Artis.*
 ```
 # check if you have proxy wallet, assossiated with your current address
 seth call 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4 "proxies(address)(address)" <your address>
@@ -41,31 +41,31 @@ seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
 ```
 In this case to obtain `DS_PROXY`, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
 
-2. Define some variables in bash that will be used to create a transaction
+#### 2. Define some variables in bash that will be used to create a transaction
 
-2.1 Predefined variables and functions can be loaded from `artis.sh` file:
+##### 2.1 Predefined variables and functions can be loaded from `artis.sh` file:
 ```
 source artis.sh
 ```
 
-2.2 Specify address of `DS_PROXY` from the previous step
+##### 2.2 Specify address of `DS_PROXY` from the previous step
 ```
 DS_PROXY=<address of proxy wallet from the previous step>
 ```
 
-2.3 Specify the amount of the initial deposit (in ETH):
+##### 2.3 Specify the amount of the initial deposit (in ETH):
 ```
 AMOUNT=1
 ```
 
-2.4 Specify collateral ratio that the underlying position will have
+##### 2.4 Specify collateral ratio that the underlying position will have
 
 Smaller values will give you more leverage, however they give you more risk of liquidation: in case if ETH will go down relatively to DAI and your initial deposit becomes too small to cover minimal collateral ratio and your initial deposit will be seized.
 
 ```
 COLL_RATIO=1.7
 ```
-3. Send `openPosition` transaction
+#### 3. Send `openPosition` transaction
 ```
 SIG=`seth sig "openPosition(address[4],uint256[4])"`
 CALLDATA=`echo $SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $PRINCIPAL)$(toRawAmount 0 eth)$(toRawAmount $COLL_RATIO eth)$MAX_ITERATIONS$MIN_COLLATERAL_AMOUNT`
