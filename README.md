@@ -30,18 +30,20 @@ export ETH_PASSWORD=<path to a file with password to your keystore file>
 ```
 ### Steps
 
+All commands in a code block can be executed in bash shell
+
 #### 1. Get proxy wallet
 
 If you used [CDP portal](https://cdp.makerdao.com) before, you most probably already have a proxy wallet, and you can use it for Artis.
 ```
 # check if you have proxy wallet, assossiated with your address
-seth call 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4 "proxies(address)(address)" <your address>
+$ seth call 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4 "proxies(address)(address)" <your address>
 ```
 If this command return non-zero code, it's a `DS_PROXY` address, that you can use for further actions.
 
 If you don't have a proxy wallet, you can create a new one.
 ```
-seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
+$ seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
 ```
 In this case, to obtain `DS_PROXY` address, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
 
@@ -49,17 +51,17 @@ In this case, to obtain `DS_PROXY` address, you can go to https://etherscan.io, 
 
 ##### 2.1 Predefined variables and functions can be loaded from `artis.sh` file:
 ```
-source artis.sh
+$ source artis.sh
 ```
 
 ##### 2.2 Specify address of `DS_PROXY` from the previous step
 ```
-DS_PROXY=<address of proxy wallet from the previous step>
+$ DS_PROXY=<address of proxy wallet from the previous step>
 ```
 
 ##### 2.3 Specify the amount of the initial deposit (in ETH):
 ```
-AMOUNT=1.1 # specify desired value
+$ AMOUNT=1.1 # specify desired value
 ```
 
 ##### 2.4 Specify collateral ratio that the underlying position will have
@@ -80,20 +82,19 @@ Max theoretical leverage table (exchange fees and interest are not included in t
 | ~2.00 | 2.0 |
 
 ```
-COLL_RATIO=1.7 # specify desired value
+$ COLL_RATIO=1.7 # specify desired value
 ```
 #### 3. Send `openPosition` transaction
 Transaction will go through your proxy wallet, so the calldata needs to be formed manually
 ```
 # Calculate function signature
-SIG=$(seth sig "openPosition(address[4],uint256[4])")
+$ SIG=$(seth sig "openPosition(address[4],uint256[4])")
 
 # Form calldata for Artis contract
-CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $PRINCIPAL)\
-$(toRawAmount 0 eth)$(toRawAmount $COLL_RATIO eth)$MAX_ITERATIONS$MIN_COLLATERAL_AMOUNT"
+$ CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $PRINCIPAL)$(toRawAmount 0 eth)$(toRawAmount $COLL_RATIO eth)$MAX_ITERATIONS$MIN_COLLATERAL_AMOUNT"
 
 # Send transaction to your proxy wallet
-seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
+$ seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
 ```
 
 ## How to close a long ETH position:
@@ -110,7 +111,7 @@ Every position has its id that needs to be specified when you want to close it.
 To obtain the ID you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for the last event and take the first data field from this event. It will be `POSITION_ID`.
 
 ```
-POSITION_ID=0000000000000000000000000000000000000000000000000000000000000001 # specify your ID
+$ POSITION_ID=0000000000000000000000000000000000000000000000000000000000000001 # specify your ID
 ```
 
 
@@ -118,11 +119,11 @@ POSITION_ID=0000000000000000000000000000000000000000000000000000000000000001 # s
 Transaction will go through your proxy wallet, so the calldata needs to be formed manually
 ```
 # Calculate function signature
-SIG=$(seth sig "closePosition(address[2],uint256[3])")
+$ SIG=$(seth sig "closePosition(address[2],uint256[3])")
 
 # Form calldata for Artis contract
-CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$POSITION_ID$COLL_RATIO_CLOSE$MAX_ITERATIONS"
+$ CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$POSITION_ID$COLL_RATIO_CLOSE$MAX_ITERATIONS"
 
 # Send transaction to your proxy wallet
-seth send "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
+$ seth send "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
 ```
