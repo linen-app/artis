@@ -52,7 +52,7 @@ In this case, to obtain `DS_PROXY` address, you can go to https://etherscan.io, 
 
 #### 2. Define some variables in bash that will be used to create a transaction
 
-##### 2.1 Predefined variables and functions can be loaded from `artis.sh` file:
+##### 2.1 Predefined variables and functions can be loaded from `artis.sh` file (can be found in the root folder of this repo):
 ```
 $ source artis.sh
 ```
