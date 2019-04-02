@@ -1,27 +1,3 @@
-TODO:
-[x] Uniswap integration
-[x] Looping
-[x] Why Failure(8,72)? -> (invalid collateral ratio & depositAmount bug)
-[x] Position closing
-[x] MakerDAO repay and return
-[x] Uniswap price feed
-[x] MakerDAO fee handling
-[x] Swap ETH instead of WETH on uniswap
-[x] Total fee calc
-[] Docs
-[] Gas fee, exchange fee 
-[] Leverage as param
-[] Collateral top-up
-[] Liquidation price calc
-[] Storage Alignment check
-[] Events and names
-[] Auto tests
-[] Token balances and ownership description
-[] Add agreementId param
-
-Questions:
-- Should we use our MakerDAO gateway?: NO
-
 # How to open a long ETH position:
 
 ## Prerequisites
