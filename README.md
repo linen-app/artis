@@ -13,10 +13,12 @@ In this guide, we will open a long ETH positions with DAI as an owed token.
 Other token pairs will come once more lending protocols will be integrated.
 
 ### Prerequisites
-- Ethereum account with initial deposit (in ETH or WETH token)
+- Ethereum account with initial deposit in ETH
 - [Seth](https://dapp.tools/seth) command line tool, with access to the abovementioned account. Seth docs can be found [here](https://github.com/dapphub/dapptools/tree/master/src/seth)
 
-Example of `~/.sethrc` file with Seth settings
+After the installation of seth, it's needed to specify default parameters in `~/.sethrc` file.
+
+Here you can find an example of `~/.sethrc` file with Seth settings:
 ```
 export ETHERSCAN_API_KEY=<your_key>
 export ETH_GAS=3000000
@@ -28,9 +30,11 @@ export ETH_PASSWORD=<path to a file with password to your keystore file>
 ```
 ### Steps
 
-#### 1. If you used [CDP portal](https://cdp.makerdao.com) before, you most probably already have a proxy wallet, and you can use it for Artis.*
+#### 1. Get proxy wallet
+
+If you used [CDP portal](https://cdp.makerdao.com) before, you most probably already have a proxy wallet, and you can use it for Artis.
 ```
-# check if you have proxy wallet, assossiated with your current address
+# check if you have proxy wallet, assossiated with your address
 seth call 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4 "proxies(address)(address)" <your address>
 ```
 If this command return non-zero code, it's a `DS_PROXY` address, that you can use for further actions.
@@ -39,7 +43,7 @@ If you don't have a proxy wallet, you can create a new one.
 ```
 seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
 ```
-In this case, to obtain `DS_PROXY`, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
+In this case, to obtain `DS_PROXY` address, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
 
 #### 2. Define some variables in bash that will be used to create a transaction
 
@@ -55,7 +59,7 @@ DS_PROXY=<address of proxy wallet from the previous step>
 
 ##### 2.3 Specify the amount of the initial deposit (in ETH):
 ```
-AMOUNT=1
+AMOUNT=1.1 # specify desired value
 ```
 
 ##### 2.4 Specify collateral ratio that the underlying position will have
@@ -76,10 +80,10 @@ Max theoretical leverage table (exchange fees and interest are not included in t
 | ~2.00 | 2.0 |
 
 ```
-COLL_RATIO=1.7
+COLL_RATIO=1.7 # specify desired value
 ```
 #### 3. Send `openPosition` transaction
-The transaction will go through proxy wallet, so the calldata needs to be formed manually
+Transaction will go through your proxy wallet, so the calldata needs to be formed manually
 ```
 # Calculate function signature
 SIG=$(seth sig "openPosition(address[4],uint256[4])")
@@ -95,7 +99,7 @@ seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,byte
 ## How to close a long ETH position:
 
 ### Prerequisites
-You have an open long ETH position and executed steps 1 - 2.2 from the previous part
+You have an open long ETH position and executed all steps from the previous part
 
 ### Steps
 
@@ -103,15 +107,15 @@ You have an open long ETH position and executed steps 1 - 2.2 from the previous 
 ##### 1.1 Get `POSITION_ID` that you want to close
 Every position has its id that needs to be specified when you want to close it.
 
-To obtain the id you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for the last event and take the first data field from this event. It will be `POSITION_ID`.
+To obtain the ID you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for the last event and take the first data field from this event. It will be `POSITION_ID`.
 
 ```
-POSITION_ID=0000000000000000000000000000000000000000000000000000000000000001
+POSITION_ID=0000000000000000000000000000000000000000000000000000000000000001 # specify your ID
 ```
 
 
 #### 2. Send `closePosition` transaction
-The transaction will go through proxy wallet, so the calldata needs to be formed manually
+Transaction will go through your proxy wallet, so the calldata needs to be formed manually
 ```
 # Calculate function signature
 SIG=$(seth sig "closePosition(address[2],uint256[3])")
