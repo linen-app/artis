@@ -16,7 +16,7 @@ Other token pairs will come once more lending protocols will be integrated.
 - Ethereum account with initial deposit in ETH
 - [Seth](https://dapp.tools/seth) command line tool, with access to the abovementioned account. Seth docs can be found [here](https://github.com/dapphub/dapptools/tree/master/src/seth)
 
-After the installation of seth, it's needed to specify default parameters in `~/.sethrc` file.
+After the installation of seth, it's needed to specify default parameters in `~/.sethrc` file. If you don't have one, please create a new `~/.sethrc` file. You can do it in any text editor, like `nano`.
 
 Here you can find an example of `~/.sethrc` file with Seth settings:
 ```
