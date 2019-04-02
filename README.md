@@ -6,7 +6,7 @@ It works with [Uniswap](https://uniswap.io/) and [MakerDAO](https://makerdao.com
 
 More DEXes and lending protocols are coming.
 
-## How to open a long ETH position:
+## How to open a long ETH position
 
 In this guide, we will open a long ETH positions with DAI as an owed token.
 
@@ -97,7 +97,7 @@ $ CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $P
 $ seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
 ```
 
-## How to close a long ETH position:
+## How to close a long ETH position
 
 ### Prerequisites
 You have an open long ETH position and executed all steps from the previous part
