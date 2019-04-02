@@ -1,7 +1,7 @@
 pragma solidity >=0.5.0 <0.6.0;
 
 import "ds-math/math.sol";
-import "./interfaces/IERC20.sol";
+import "./interfaces/IWrappedEther.sol";
 import "./interfaces/IExchange.sol";
 import "./interfaces/ILender.sol";
 
@@ -18,6 +18,8 @@ contract Leverager is DSMath {
 
     uint public positionsCount;
     mapping (uint => Position) public positions;
+
+    IWrappedEther constant weth = IWrappedEther(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     event PositionOpened(
         address indexed owner,
@@ -52,14 +54,21 @@ contract Leverager is DSMath {
     function openShortPosition (
         address[4] calldata addresses,
         uint[4] calldata uints
-    ) external {
+    ) external payable {
         positionsCount = add(positionsCount, 1);
         uint positionId = positionsCount;
         uint recievedAmount = uints[0];
         uint heldAmount = uints[0];
+        address heldToken = addresses[2];
         bytes32 agreementId;
 
-        IERC20(addresses[2]).transferFrom(msg.sender, address(this), uints[0]);
+        if(heldToken == address(0)){
+            require(msg.value > 0, "Ether should be supplied");
+            weth.deposit.value(msg.value)();
+            heldToken = address(weth);
+        } else {
+            IERC20(heldToken).transferFrom(msg.sender, address(this), uints[0]);
+        }
 
         for (uint i = 0; i < uints[2]; i++) {
             bool ok;
@@ -67,7 +76,7 @@ contract Leverager is DSMath {
             (ok, result) = addresses[0].delegatecall(
                 abi.encodeWithSignature(
                     "supplyAndBorrow(bytes32,address,uint256,address,uint256)",
-                    agreementId, addresses[3], uints[1], addresses[2], recievedAmount
+                    agreementId, addresses[3], uints[1], heldToken, recievedAmount
                 )
             );
             require(ok, "supplyAndBorrow failed");
@@ -77,7 +86,7 @@ contract Leverager is DSMath {
             (ok, result) = addresses[1].delegatecall(
                 abi.encodeWithSignature(
                     "swap(address,uint256,address,uint256)",
-                    addresses[3], principalAmount, addresses[2], 0
+                    addresses[3], principalAmount, heldToken, 0
                 )
             );
             require(ok, "swap failed");
@@ -120,14 +129,16 @@ contract Leverager is DSMath {
         - return collateral
         */
         Position storage position = positions[uints[0]];
+        IERC20 heldToken = address(position.heldToken) == address(0) ? weth : position.heldToken;
+        uint initWethBalance = weth.balanceOf(address(this));
 
         for (uint i = 0; i < uints[2]; i++) {
             // Should it include interest?
             uint owedAmountInPrincipalToken = ILender(addresses[0]).getOwedAmount(position.agreementId, position.principalToken);
 
             // TODO: EXCHANGE price feed
-            uint owedAmountInHeldToken = IExchange(addresses[1]).convertAmountDst(position.heldToken, position.principalToken, owedAmountInPrincipalToken);
-            uint heldTokenBalance = position.heldToken.balanceOf(address(this));
+            uint owedAmountInHeldToken = IExchange(addresses[1]).convertAmountDst(heldToken, position.principalToken, owedAmountInPrincipalToken);
+            uint heldTokenBalance = heldToken.balanceOf(address(this));
 
             // do we have enough tokens to repay all debt?
             if (owedAmountInHeldToken > heldTokenBalance) {
@@ -136,7 +147,7 @@ contract Leverager is DSMath {
                 (ok, result) = addresses[1].delegatecall(
                     abi.encodeWithSignature(
                         "swap(address,uint256,address,uint256)",
-                        position.heldToken, heldTokenBalance, position.principalToken, 0
+                        heldToken, heldTokenBalance, position.principalToken, 0
                     )
                 );
                 require(ok, "swap failed");
@@ -145,7 +156,7 @@ contract Leverager is DSMath {
                 (ok, result) = addresses[0].delegatecall(
                     abi.encodeWithSignature(
                         "repayAndReturn(bytes32,address,uint256,address,uint256)",
-                        position.agreementId, position.principalToken, recievedAmount, position.heldToken, uints[1]
+                        position.agreementId, position.principalToken, recievedAmount, heldToken, uints[1]
                     )
                 );
                 require(ok, "supplyAndBorrow failed");
@@ -155,7 +166,7 @@ contract Leverager is DSMath {
                 (ok, result) = addresses[1].delegatecall(
                     abi.encodeWithSignature(
                         "swap(address,uint256,address,uint256)",
-                        position.heldToken, 0, position.principalToken, owedAmountInPrincipalToken
+                        heldToken, 0, position.principalToken, owedAmountInPrincipalToken
                     )
                 );
                 require(ok, "swap failed");
@@ -163,12 +174,19 @@ contract Leverager is DSMath {
                 (ok, result) = addresses[0].delegatecall(
                     abi.encodeWithSignature(
                         "repayAndReturn(bytes32,address,uint256,address,uint256)",
-                        position.agreementId, position.principalToken, uint(-1), position.heldToken, uint(-1)
+                        position.agreementId, position.principalToken, uint(-1), heldToken, uint(-1)
                     )
                 );
                 require(ok, "supplyAndBorrow failed");
 
                 break;
+            }
+        }
+
+        if (address(position.heldToken) == address(0)){
+            uint finalWethBalance = weth.balanceOf(address(this));
+            if (finalWethBalance > initWethBalance){
+                weth.withdraw(sub(finalWethBalance, initWethBalance));
             }
         }
 

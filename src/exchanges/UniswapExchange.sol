@@ -1,12 +1,8 @@
 pragma solidity >=0.5.0 <0.6.0;
 
 import "../interfaces/IExchange.sol";
+import "../interfaces/IWrappedEther.sol";
 import "../libraries/ERC20Lib.sol";
-
-contract IWrappedEther is IERC20 {
-    function deposit() external payable;
-    function withdraw(uint amount) external;
-}
 
 interface UniswapFactoryInterface {
     function getExchange(IERC20 token) external view returns (UniswapExchangeInterface exchange);
