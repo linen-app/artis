@@ -54,7 +54,7 @@ contract MakerDaoLender is ILender, DSMath {
         uint wadCollateralRatio,
         IERC20 collateralToken,
         uint collateralAmount)
-    external returns (bytes32 _agreementId, uint _principalAmount) {
+    external payable returns (bytes32 _agreementId, uint _principalAmount) {
         require(address(collateralToken) == address(weth));
         require(address(principalToken) == address(dai));
 

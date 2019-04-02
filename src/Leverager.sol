@@ -51,7 +51,7 @@ contract Leverager is DSMath {
     // uints[3] =     minCollateralAmount
     // 
     // arrays in params used to evade "stack too deep" during compilation
-    function openShortPosition (
+    function openPosition (
         address[4] calldata addresses,
         uint[4] calldata uints
     ) external payable {
@@ -65,6 +65,8 @@ contract Leverager is DSMath {
         if(heldToken == address(0)){
             require(msg.value > 0, "Ether should be supplied");
             weth.deposit.value(msg.value)();
+            recievedAmount = msg.value;
+            heldAmount = msg.value;
             heldToken = address(weth);
         } else {
             IERC20(heldToken).transferFrom(msg.sender, address(this), uints[0]);
@@ -117,7 +119,7 @@ contract Leverager is DSMath {
     // uints[0] =     positionId
     // uints[1] =     wadMaxBaseRatio
     // uints[2] =     maxIterations
-    function closeShortPosition(
+    function closePosition(
         address[2] calldata addresses,
         uint[3] calldata uints
     ) external {

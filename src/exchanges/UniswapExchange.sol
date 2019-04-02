@@ -66,7 +66,7 @@ contract UniswapExchange is IExchange {
 
     // specify either srcAmount = 0 or dstAmount = 0
     // actual amount - actual srcAmount if srcAmount is zero or actual dstAmount if dstAmount is zero
-    function swap(IERC20 srcToken, uint srcAmount, IERC20 dstToken, uint dstAmount) external returns (uint actualAmount) {
+    function swap(IERC20 srcToken, uint srcAmount, IERC20 dstToken, uint dstAmount) external payable returns (uint actualAmount) {
         require(srcAmount > 0 || dstAmount > 0, "Either srcAmount or dstAmount must be positive");
 
         UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
