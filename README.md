@@ -127,3 +127,10 @@ $ CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$POSITION_ID$COLL_RATIO_CLOSE$
 # Send transaction to your proxy wallet
 $ seth send "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
 ```
+
+## How to top-up collateral to the underlying loan and watch its state
+
+All assets and loan ownership stays on your proxy wallet, Artis smart contracts are used as bytecode and do not store any state or assets. Therefore you can manage the underlying loan with some 3rd party tools.
+With MakerDAO as underlying lending protocol, you can manage underlying CDP with help of [CDP portal](https://cdp.makerdao.com). For example, you can top-up collateral or see a liquidation price.
+
+You can also use MakerDAO protocol explorers, like [LoanScan](https://loanscan.io) to see all the transactions that executed under the hood and see your CDP balance and collateral supplied.
