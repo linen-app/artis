@@ -8,7 +8,7 @@ More DEXes and lending protocols are coming.
 
 ## How to open a long ETH position:
 
-In this guide we will open a long ETH positions with DAI as owed token.
+In this guide, we will open a long ETH positions with DAI as an owed token.
 
 Other token pairs will come once more lending protocols will be integrated.
 
@@ -35,11 +35,11 @@ seth call 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4 "proxies(address)(address)"
 ```
 If this command return non-zero code, it's a `DS_PROXY` address, that you can use for further actions.
 
-If you don't have proxy wallet, you can create a new one.
+If you don't have a proxy wallet, you can create a new one.
 ```
 seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
 ```
-In this case to obtain `DS_PROXY`, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
+In this case, to obtain `DS_PROXY`, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
 
 #### 2. Define some variables in bash that will be used to create a transaction
 
@@ -60,7 +60,7 @@ AMOUNT=1
 
 ##### 2.4 Specify collateral ratio that the underlying position will have
 
-Smaller values will give you more leverage, however they give you more risk of liquidation: in case if ETH will go down relatively to DAI and your initial deposit becomes too small to cover minimal collateral ratio and your initial deposit will be seized.
+Smaller values will give you more leverage, however, they give you more risk of liquidation: in case if ETH will go down relatively to DAI and your initial deposit becomes too small to cover minimal collateral ratio and your initial deposit will be seized.
 
 Minimal amount: 1.5 (very risky). Recommended amount: 1.7
 
@@ -95,15 +95,15 @@ seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,byte
 ## How to close a long ETH position:
 
 ### Prerequisites
-You have a open long ETH position and executed steps 1 - 2.2 from the previous part
+You have an open long ETH position and executed steps 1 - 2.2 from the previous part
 
 ### Steps
 
 #### 1. Define some variables in bash that will be used to create a transaction
 ##### 1.1 Get `POSITION_ID` that you want to close
-Every position has it's id that need to be specified when you want to close it.
+Every position has its id that needs to be specified when you want to close it.
 
-To obtain the id you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for the last event and take the first data field from this event. It will be the `POSITION_ID`.
+To obtain the id you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for the last event and take the first data field from this event. It will be `POSITION_ID`.
 
 ```
 POSITION_ID=0000000000000000000000000000000000000000000000000000000000000001
@@ -117,8 +117,8 @@ The transaction will go through proxy wallet, so the calldata needs to be formed
 SIG=$(seth sig "closePosition(address[2],uint256[3])")
 
 # Form calldata for Artis contract
-CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$POSITION_ID$(toRawAmount $COLL_RATIO_CLOSE eth)$MAX_ITERATIONS"
+CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$POSITION_ID$COLL_RATIO_CLOSE$MAX_ITERATIONS"
 
 # Send transaction to your proxy wallet
-seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
+seth send "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
 ```
