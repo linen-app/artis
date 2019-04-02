@@ -64,7 +64,7 @@ Smaller values will give you more leverage, however they give you more risk of l
 
 Minimal amount: 1.5 (very risky). Recommended amount: 1.7
 
-Max theoretical leverage table:
+Max theoretical leverage table (exchange fees and interest are not included in this calculation):
 
 | Leverage | Collateral ratio |
 | ----------- | ----------- |
@@ -87,6 +87,37 @@ SIG=$(seth sig "openPosition(address[4],uint256[4])")
 # Form calldata for Artis contract
 CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $PRINCIPAL)\
 $(toRawAmount 0 eth)$(toRawAmount $COLL_RATIO eth)$MAX_ITERATIONS$MIN_COLLATERAL_AMOUNT"
+
+# Send transaction to your proxy wallet
+seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
+```
+
+## How to close a long ETH position:
+
+### Prerequisites
+You have a open long ETH position and executed steps 1 - 2.2 from the previous part
+
+### Steps
+
+#### 1. Define some variables in bash that will be used to create a transaction
+##### 1.1 Get `POSITION_ID` that you want to close
+Every position has it's id that need to be specified when you want to close it.
+
+To obtain the id you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for the last event and take the first data field from this event. It will be the `POSITION_ID`.
+
+```
+POSITION_ID=0000000000000000000000000000000000000000000000000000000000000001
+```
+
+
+#### 2. Send `closePosition` transaction
+The transaction will go through proxy wallet, so the calldata needs to be formed manually
+```
+# Calculate function signature
+SIG=$(seth sig "closePosition(address[2],uint256[3])")
+
+# Form calldata for Artis contract
+CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$POSITION_ID$(toRawAmount $COLL_RATIO_CLOSE eth)$MAX_ITERATIONS"
 
 # Send transaction to your proxy wallet
 seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
