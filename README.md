@@ -68,13 +68,12 @@ Max theoretical leverage table:
 
 | Leverage | Collateral ratio |
 | ----------- | ----------- |
-| ~3x | 1.5 |
-| ~2.66x | 1.6 |
-| ~2.43x | 1.7 |
-| ~2.25x | 1.8 |
-| ~2.11x | 1.9 |
-| ~2.00x | 2.0 |
-| Paragraph | Text |
+| ~3 | 1.5 |
+| ~2.66 | 1.6 |
+| ~2.43 | 1.7 |
+| ~2.25 | 1.8 |
+| ~2.11 | 1.9 |
+| ~2.00 | 2.0 |
 
 ```
 COLL_RATIO=1.7
@@ -83,7 +82,7 @@ COLL_RATIO=1.7
 The transaction will go through proxy wallet, so the calldata needs to be formed manually
 ```
 # Calculate function signature
-SIG=`seth sig "openPosition(address[4],uint256[4])"`
+SIG=$(seth sig "openPosition(address[4],uint256[4])")
 
 # Form calldata for Artis contract
 CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $PRINCIPAL)\
