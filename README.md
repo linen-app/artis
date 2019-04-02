@@ -28,6 +28,9 @@ export SETH_CHAIN=ethlive
 export ETH_KEYSTORE=<path to a folder with json keystore file>
 export ETH_PASSWORD=<path to a file with password to your keystore file>
 ```
+
+Please don't forget to logout and log back in to start using seth after the installation.
+
 ### Steps
 
 All commands in a code block can be executed in bash shell
