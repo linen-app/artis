@@ -37,7 +37,7 @@ All commands in a code block can be executed in bash shell
 If you used [CDP portal](https://cdp.makerdao.com) before, you most probably already have a proxy wallet, and you can use it for Artis.
 ```
 # check if you have proxy wallet, assossiated with your address
-$ seth call 0x4678f0a6958e4D2Bc4F1BAF7Bc52E8F3564f3fE4 "proxies(address)(address)" <your address>
+$ seth call 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "proxies(address)(address)" <your address>
 ```
 If this command return non-zero code, it's a `DS_PROXY` address, that you can use for further actions.
 
