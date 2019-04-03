@@ -63,6 +63,8 @@ If you don't have a proxy wallet, you can create a new one.
 ```
 $ seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
 ```
+You will be promted to enter a password for the keystore file.
+
 In this case, to obtain `DS_PROXY` address, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
 
 #### 2. Define some variables in bash that will be used to create a transaction
@@ -115,6 +117,7 @@ $ CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$(toArg $HELD_ASSET)$(toArg $P
 # Send transaction to your proxy wallet
 $ seth send --value $(seth --to-wei $AMOUNT eth) "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
 ```
+You will be promted to enter a password for the keystore file.
 
 ## How to close a long ETH position
 
@@ -146,6 +149,7 @@ $ CALLDATA="$SIG$(toArg $LENDER)$(toArg $EXCHANGE)$POSITION_ID$COLL_RATIO_CLOSE$
 # Send transaction to your proxy wallet
 $ seth send "$DS_PROXY" "execute(address,bytes memory)(bytes32)" "$LEVERAGER" "$CALLDATA"
 ```
+You will be promted to enter a password for the keystore file.
 
 ## How to top-up collateral and track the underlying loan
 
