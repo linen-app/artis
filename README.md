@@ -33,6 +33,7 @@ export ETH_FROM=<your address>
 export ETH_GAS=3000000
 export ETH_GAS_PRICE=5000000000 # 5 GWei, please adjust it if transactions are slow
 export SETH_CHAIN=ethlive
+export ETH_KEYSTORE=“$HOME/.ethereum/keystore”
 ```
 
 In order to enable seth to operate your account, you need to put a [json keystore file](https://medium.com/@julien.maffre/what-is-an-ethereum-keystore-file-86c8c5917b97) that corresponds to `ETH_FROM` address in `~/.ethereum/keystore` folder.
