@@ -6,6 +6,8 @@ It works with [Uniswap](https://uniswap.io/) and [MakerDAO](https://makerdao.com
 
 More DEXes and lending protocols are coming.
 
+**THIS SOFTWARE IS NOT AUDITED AND NOT READY FOR PRODUCTION USAGE. USE IT AT YOUR OWN RISK.**
+
 ## How to open a leveraged long ETH position
 
 In this guide, we will open a long ETH positions with DAI as an owed token.
