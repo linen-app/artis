@@ -15,6 +15,7 @@ In this guide, we will open a long ETH positions with DAI as an owed token.
 Other token pairs will come once more lending protocols will be integrated.
 
 ### Prerequisites
+- OS: Mac OS or Linux
 - Ethereum account with initial deposit in ETH
 - [Seth](https://dapp.tools/seth) command line tool, with access to the abovementioned account. Seth docs can be found [here](https://github.com/dapphub/dapptools/tree/master/src/seth)
 
@@ -34,7 +35,7 @@ export ETH_GAS_PRICE=5000000000 # 5 GWei, please adjust it if transactions are s
 export SETH_CHAIN=ethlive
 ```
 
-In order to enable seth to operate your account, you need to put a json keystore file that corresponds to `ETH_FROM` address in `~/.ethereum/keystore` folder.
+In order to enable seth to operate your account, you need to put a [json keystore file](https://medium.com/@julien.maffre/what-is-an-ethereum-keystore-file-86c8c5917b97) that corresponds to `ETH_FROM` address in `~/.ethereum/keystore` folder.
 
 If you don't have this folder, you can create it with the next command:
 ```
@@ -77,6 +78,7 @@ $ DS_PROXY=<address of proxy wallet from the previous step>
 ```
 
 ##### 2.3 Specify the amount of the initial deposit (in ETH):
+Minimum supported value: 0.01 ETH
 ```
 $ AMOUNT=1.1 # specify desired value
 ```
