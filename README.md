@@ -20,7 +20,6 @@ After the installation of seth, it's needed to specify default parameters in `~/
 
 Here you can find an example of `~/.sethrc` file with Seth settings:
 ```
-export ETHERSCAN_API_KEY=<your_key>
 export ETH_GAS=3000000
 export ETH_GAS_PRICE=5000000000 # 5 GWei, please adjust it if transactions are slow
 export ETH_FROM=<your address>
