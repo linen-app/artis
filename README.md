@@ -67,6 +67,8 @@ You will be promted to enter a password for the keystore file.
 
 In this case, to obtain `DS_PROXY` address, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
 
+![Created](./img/created.png)
+
 #### 2. Define some variables in bash that will be used to create a transaction
 
 ##### 2.1 Predefined variables and functions can be loaded from `artis.sh` file (can be found in the root folder of this repo):
@@ -131,6 +133,8 @@ You have an open long ETH position and executed all steps from the previous part
 Every position has its id that needs to be specified when you want to close it.
 
 To obtain the ID you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for the last event and take the first data field from this event. It will be `POSITION_ID`.
+
+![PositionId](./img/position-id.png)
 
 ```
 $ POSITION_ID=0000000000000000000000000000000000000000000000000000000000000001 # specify your ID
