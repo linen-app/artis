@@ -16,19 +16,32 @@ Other token pairs will come once more lending protocols will be integrated.
 - Ethereum account with initial deposit in ETH
 - [Seth](https://dapp.tools/seth) command line tool, with access to the abovementioned account. Seth docs can be found [here](https://github.com/dapphub/dapptools/tree/master/src/seth)
 
+You can install Seth with those commands:
+```
+curl https://dapp.tools/install | sh
+. "$HOME/.nix-profile/etc/profile.d/nix.sh"
+```
+
 After the installation of seth, it's needed to specify default parameters in `~/.sethrc` file. If you don't have one, please create a new `~/.sethrc` file. You can do it in any text editor, like `nano`.
 
 Here you can find an example of `~/.sethrc` file with Seth settings:
 ```
+export ETH_FROM=<your address>
 export ETH_GAS=3000000
 export ETH_GAS_PRICE=5000000000 # 5 GWei, please adjust it if transactions are slow
-export ETH_FROM=<your address>
 export SETH_CHAIN=ethlive
-export ETH_KEYSTORE=<path to a folder with json keystore file>
-export ETH_PASSWORD=<path to a file with password to your keystore file>
 ```
 
-Please don't forget to logout and log back in to start using seth after the installation.
+In order to enable seth to operate your account, you need to put a json keystore file that corresponds to `ETH_FROM` address in `~/.ethereum/keystore` folder.
+
+If you don't have this folder, you can create it with the next command:
+```
+mkdir -p ~/.ethereum/keystore
+```
+
+The easiest way to obtain json keystore file is to create a new account on https://www.myetherwallet.com/ or https://mycrypto.com/.
+
+After you put keystore file into this directory, run `seth ls` command to ensure that `seth` managed to parse the file. If everything is ok, you will see `ETH_FROM` address in the output.
 
 ### Steps
 
@@ -77,11 +90,11 @@ Max theoretical leverage table (exchange fees and interest are not included in t
 | Leverage | Collateral ratio |
 | ----------- | ----------- |
 | ~3 | 1.5 |
-| ~2.66 | 1.6 |
-| ~2.43 | 1.7 |
-| ~2.25 | 1.8 |
-| ~2.11 | 1.9 |
-| ~2.00 | 2.0 |
+| ~2.6 | 1.6 |
+| ~2.4 | 1.7 |
+| ~2.2 | 1.8 |
+| ~2.1 | 1.9 |
+| ~2.0 | 2.0 |
 
 ```
 $ COLL_RATIO=1.7 # specify desired value
