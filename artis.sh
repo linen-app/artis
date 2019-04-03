@@ -1,5 +1,5 @@
 toArg () {
-    printf "%064s" ${1#*x}
+    seth --to-word $1
 }
 
 toDecimal () {
