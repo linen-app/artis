@@ -25,17 +25,6 @@ curl https://dapp.tools/install | sh
 . "$HOME/.nix-profile/etc/profile.d/nix.sh"
 ```
 
-After the installation of seth, it's needed to specify default parameters in `~/.sethrc` file. If you don't have one, please create a new `~/.sethrc` file. You can do it in any text editor, like `nano`.
-
-Here you can find an example of `~/.sethrc` file with Seth settings:
-```
-export ETH_FROM=<your address>
-export ETH_GAS=3000000
-export ETH_GAS_PRICE=5000000000 # 5 GWei, please adjust it if transactions are slow
-export SETH_CHAIN=ethlive
-export ETH_KEYSTORE=“$HOME/.ethereum/keystore”
-```
-
 In order to enable seth to operate your account, you need to put a [json keystore file](https://medium.com/@julien.maffre/what-is-an-ethereum-keystore-file-86c8c5917b97) that corresponds to `ETH_FROM` address in `~/.ethereum/keystore` folder.
 
 If you don't have this folder, you can create it with the next command:
@@ -45,7 +34,18 @@ mkdir -p ~/.ethereum/keystore
 
 The easiest way to obtain json keystore file is to create a new account on https://www.myetherwallet.com/ or https://mycrypto.com/.
 
-After you put keystore file into this directory, run `seth ls` command to ensure that `seth` managed to parse the file. If everything is ok, you will see `ETH_FROM` address in the output.
+After you put a keystore file into this directory, you can run `seth accounts` command to ensure that `seth` managed to parse the file. If everything is ok, you will see `ETH_FROM` address in the output.
+
+After the installation of seth, it's needed to specify default parameters in `.sethrc` file in your `$HOME` folder. If you don't have one, please create a new `.sethrc` file inside `$HOME` folder. You can do it in any text editor, like `nano`.
+
+Here you can find an example of `.sethrc` file with Seth settings:
+```
+export ETH_FROM=<your address>
+export ETH_GAS=3000000
+export ETH_GAS_PRICE=5000000000 # 5 GWei, please adjust it if transactions are slow
+export SETH_CHAIN=ethlive
+export ETH_KEYSTORE=~/.ethereum/keystore
+```
 
 ### Steps
 
@@ -60,7 +60,7 @@ $ seth call 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "proxies(address)(address
 ```
 If this command return non-zero code, it's a `DS_PROXY` address, that you can use for further actions.
 
-If you don't have a proxy wallet, you can create a new one.
+If you don't have a proxy wallet, you can create a new one. Don't forget to transfer some ether to `ETH_FROM` address, so you can send transactions from it.
 ```
 $ seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
 ```
