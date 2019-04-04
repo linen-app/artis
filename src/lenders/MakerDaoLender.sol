@@ -3,6 +3,7 @@ pragma solidity >=0.5.0 <0.6.0;
 import "ds-math/math.sol";
 import "../interfaces/ILender.sol";
 import "../interfaces/IExchange.sol";
+import "../interfaces/IWrappedEther.sol";
 import "../libraries/ERC20Lib.sol";
 
 interface DSValue {
@@ -24,6 +25,7 @@ interface ISaiTub {
     function shut(bytes32 cup) external;
     function per() external view returns (uint ray);
     function tag() external view returns (uint wad);
+    function bid(uint wad) external view returns (uint);
     
     function tab(bytes32 cup) external returns (uint);
     function rap(bytes32 cup) external returns (uint);
@@ -34,16 +36,16 @@ interface ISaiTub {
 contract MakerDaoLender is ILender, DSMath {
     using ERC20Lib for IERC20;
 
-    // 0x448a5065aeBB8E423F0896E6c5D525C040f59af3 - mainnet
-
     ISaiTub constant saiTub = ISaiTub(0x448a5065aeBB8E423F0896E6c5D525C040f59af3);
     Vox constant vox = Vox(0x9B0F70Df76165442ca6092939132bBAEA77f2d7A);
-    IERC20 constant weth = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    IWrappedEther constant weth = IWrappedEther(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     IERC20 constant peth = IERC20(0xf53AD2c6851052A81B42133467480961B2321C09);
     IERC20 constant dai = IERC20(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359);
     IERC20 constant mkr = IERC20(0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2);
     DSValue constant pep = DSValue(0x99041F808D598B782D5a3e498681C2452A31da08);
-    IExchange constant exchange = IExchange(0xCa3c70F65F8E9dac0AC3527Af980B1D914f9c7c2);
+    IExchange constant exchange = IExchange(0x238A19577695384222548BA1cD1CF65D48d027A3);
+
+    address constant ethAddress = address(0);
 
     event SupplyAndBorrow(address sender);
     event RepayAndReturn(address sender);
@@ -55,7 +57,7 @@ contract MakerDaoLender is ILender, DSMath {
         IERC20 collateralToken,
         uint collateralAmount)
     external payable returns (bytes32 _agreementId, uint _principalAmount) {
-        require(address(collateralToken) == address(weth));
+        require(address(collateralToken) == ethAddress);
         require(address(principalToken) == address(dai));
 
         _agreementId = agreementId;
@@ -63,7 +65,7 @@ contract MakerDaoLender is ILender, DSMath {
             _agreementId = saiTub.open();
         }
 
-        weth.ensureApproval(address(saiTub));
+        weth.deposit.value(collateralAmount)();
         uint pethAmount = _pethForWeth(collateralAmount);
         saiTub.join(pethAmount);
         peth.ensureApproval(address(saiTub));
@@ -82,7 +84,7 @@ contract MakerDaoLender is ILender, DSMath {
         IERC20 collateralToken,
         uint wadCollateralRatio)
     external {
-        require(address(collateralToken) == address(weth));
+        require(address(collateralToken) == ethAddress);
         require(address(principalToken) == address(dai));
 
         dai.ensureApproval(address(saiTub));
@@ -121,6 +123,8 @@ contract MakerDaoLender is ILender, DSMath {
         saiTub.free(agreementId, pethAmount);
         peth.ensureApproval(address(saiTub));
         saiTub.exit(pethAmount);
+
+        weth.withdraw(saiTub.bid(pethAmount));
 
         emit RepayAndReturn(msg.sender);
     }

@@ -1,7 +1,6 @@
 pragma solidity >=0.5.0 <0.6.0;
 
 import "../interfaces/IExchange.sol";
-import "../interfaces/IWrappedEther.sol";
 import "../libraries/ERC20Lib.sol";
 
 interface UniswapFactoryInterface {
@@ -32,7 +31,7 @@ contract UniswapExchange is IExchange {
     // 0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36 - rinkeby
 
     UniswapFactoryInterface constant factory = UniswapFactoryInterface(0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95);
-    IWrappedEther constant weth = IWrappedEther(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address constant ethAddress = address(0);
 
 
     // CHECK EVERYTHING!!!
@@ -40,9 +39,9 @@ contract UniswapExchange is IExchange {
         UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
         UniswapExchangeInterface dstExchange = factory.getExchange(dstToken);
 
-        if (address(srcToken) == address(weth)) {
+        if (address(srcToken) == ethAddress) {
             dstAmount = dstExchange.getEthToTokenInputPrice(srcAmount);
-        } else if (address(dstToken) == address(weth)) {
+        } else if (address(dstToken) == ethAddress) {
             dstAmount = srcExchange.getTokenToEthInputPrice(srcAmount);
         } else {
             uint ethAmount = srcExchange.getTokenToEthInputPrice(srcAmount);
@@ -54,9 +53,9 @@ contract UniswapExchange is IExchange {
         UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
         UniswapExchangeInterface dstExchange = factory.getExchange(dstToken);
 
-        if (address(srcToken) == address(weth)) {
+        if (address(srcToken) == ethAddress) {
             srcAmount = dstExchange.getEthToTokenOutputPrice(dstAmount);
-        } else if (address(dstToken) == address(weth)) {
+        } else if (address(dstToken) == ethAddress) {
             srcAmount = srcExchange.getTokenToEthOutputPrice(dstAmount);
         } else {
             uint ethAmount = dstExchange.getEthToTokenOutputPrice(dstAmount);
@@ -68,38 +67,35 @@ contract UniswapExchange is IExchange {
     // actual amount - actual srcAmount if srcAmount is zero or actual dstAmount if dstAmount is zero
     function swap(IERC20 srcToken, uint srcAmount, IERC20 dstToken, uint dstAmount) external payable returns (uint actualAmount) {
         require(srcAmount > 0 || dstAmount > 0, "Either srcAmount or dstAmount must be positive");
-
-        UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
-        UniswapExchangeInterface dstExchange = factory.getExchange(dstToken);
-        require(address(srcExchange) != address(0), "Can't find srcToken exchange");
-        require(address(dstExchange) != address(0), "Can't find dstToken exchange");
         uint deadline = now;
 
-        if (address(srcToken) == address(weth)) {
+        if (address(srcToken) == ethAddress) {
+            UniswapExchangeInterface dstExchange = factory.getExchange(dstToken);
+            require(address(dstExchange) != address(0), "Can't find dstToken exchange");
             if (srcAmount == 0) {
                 uint ethNeeded = dstExchange.getEthToTokenOutputPrice(dstAmount);
-                weth.withdraw(ethNeeded);
                 return dstExchange.ethToTokenSwapOutput.value(ethNeeded)(dstAmount, deadline);
             } else if (dstAmount == 0) {
-                weth.withdraw(srcAmount);
                 return dstExchange.ethToTokenSwapInput.value(srcAmount)(1, deadline);
             } else {
                 revert("Either srcAmount or dstAmount must be 0");
             }
+        } else if (address(dstToken) == ethAddress) {
+            UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
+            require(address(srcExchange) != address(0), "Can't find srcToken exchange");
 
-        } else if (address(dstToken) == address(weth)) {
             srcToken.ensureApproval(address(srcExchange));
-            uint ethAmount;
             if (srcAmount == 0) {
-                ethAmount = srcExchange.tokenToEthSwapOutput(dstAmount, uint(-1), deadline);
+                return srcExchange.tokenToEthSwapOutput(dstAmount, uint(-1), deadline);
             } else if (dstAmount == 0) {
-                ethAmount = srcExchange.tokenToEthSwapInput(srcAmount, 1, deadline);
+                return srcExchange.tokenToEthSwapInput(srcAmount, 1, deadline);
             } else {
                 revert("Either srcAmount or dstAmount must be 0");
             }
-            weth.deposit.value(ethAmount)();
-            return ethAmount;
         } else {
+            UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
+            require(address(srcExchange) != address(0), "Can't find srcToken exchange");
+
             srcToken.ensureApproval(address(srcExchange));
             if (srcAmount == 0) {
                 return srcExchange.tokenToTokenSwapOutput(dstAmount, uint(-1), uint(-1), deadline, dstToken);
