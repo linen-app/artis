@@ -66,6 +66,7 @@ contract MakerDaoLender is ILender, DSMath {
         }
 
         weth.deposit.value(collateralAmount)();
+        weth.ensureApproval(address(saiTub));
         uint pethAmount = _pethForWeth(collateralAmount);
         saiTub.join(pethAmount);
         peth.ensureApproval(address(saiTub));
