@@ -170,7 +170,7 @@ contract MakerDaoLender is ILender, DSMath {
     }
 
     function _pethForWeth(uint wethAmount) internal view returns (uint) {
-        return rdiv(wethAmount, saiTub.per());
+        return sub(rdiv(wethAmount, saiTub.per()), 1); // we subtract 1 from computed PETH value because sometimes SaiTub.ask() returns bigger amount of WETH than expected 
     }
 
     function _bytesToBytes32(bytes memory source, uint offset) internal pure returns (bytes32 result) {
