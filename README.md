@@ -133,7 +133,7 @@ You have an open long ETH position and executed all steps from the previous part
 ##### 1.1 Get `POSITION_ID` that you want to close
 Every position has its id that needs to be specified when you want to close it.
 
-To obtain the ID you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for the last event and take the first data field from this event. It will be `POSITION_ID`.
+To obtain the ID you can go to https://etherscan.io, open the transaction that opened the position -> go to Event Logs -> search for **the last event** and take the first data field from this event. It will be `POSITION_ID`.
 
 ![PositionId](./img/position-id.png)
 
