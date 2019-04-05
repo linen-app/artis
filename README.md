@@ -66,9 +66,11 @@ $ seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
 ```
 You will be promted to enter a password for the keystore file.
 
-In this case, to obtain `DS_PROXY` address, you can go to https://etherscan.io, open the last transaction by txhash -> go to Event Logs -> search for `Created` event and take the first data field from this event. It will be `DS_PROXY` address.
+To to obtain newly created `DS_PROXY` address, you can execute the next command:
 
-![Created](./img/created.png)
+```
+$ seth call 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "proxies(address)(address)" <your address>
+```
 
 #### 2. Define some variables in bash that will be used to create a transaction
 
