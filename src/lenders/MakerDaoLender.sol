@@ -167,11 +167,15 @@ contract MakerDaoLender is ILender, DSMath {
         uint wadCollateralRatio
     ) internal returns (uint freePethAmount) {
         uint collPrice = saiTub.tag();
-        uint heldCollateralRef = rmul(collPrice, saiTub.ink(agreementId));
+        uint heldCollateral = saiTub.ink(agreementId);
+        uint heldCollateralRef = rmul(collPrice, heldCollateral);
         uint effectiveDebtRef = rmul(vox.par(), saiTub.tab(agreementId));
         uint neededCollateralRef = wmul(effectiveDebtRef, wadCollateralRatio);
         uint freeCollateralRef = sub(heldCollateralRef, neededCollateralRef);
         freePethAmount = rdiv(freeCollateralRef, collPrice);
+        if (freePethAmount >= sub(heldCollateral, 0.005 ether)) {
+            freePethAmount = sub(heldCollateral, 0.005 ether + 1 wei);
+        }
     }
 
     function _pethForWeth(uint wethAmount) internal view returns (uint) {
