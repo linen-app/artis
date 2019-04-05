@@ -1,7 +1,6 @@
 pragma solidity >=0.5.0 <0.6.0;
 
 import "ds-math/math.sol";
-import "./interfaces/IWrappedEther.sol";
 import "./interfaces/IExchange.sol";
 import "./interfaces/ILender.sol";
 
@@ -19,7 +18,7 @@ contract Leverager is DSMath {
     uint public positionsCount;
     mapping (uint => Position) public positions;
 
-    IWrappedEther constant weth = IWrappedEther(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address constant ethAddress = address(0);
 
     event PositionOpened(
         address indexed owner,
@@ -62,12 +61,10 @@ contract Leverager is DSMath {
         address heldToken = addresses[2];
         bytes32 agreementId;
 
-        if(heldToken == address(0)){
+        if(heldToken == ethAddress){
             require(msg.value > 0, "Ether should be supplied");
-            weth.deposit.value(msg.value)();
             recievedAmount = msg.value;
             heldAmount = msg.value;
-            heldToken = address(weth);
         } else {
             IERC20(heldToken).transferFrom(msg.sender, address(this), uints[0]);
         }
@@ -104,13 +101,13 @@ contract Leverager is DSMath {
         positions[positionId] = Position({
             agreementId: agreementId,
             owner: msg.sender,
-            heldToken: IERC20(addresses[2]),
+            heldToken: IERC20(heldToken),
             heldAmount: heldAmount,
             principalToken: IERC20(addresses[3]),
             isClosed: false
         });
 
-        emit PositionOpened(msg.sender, positionId, addresses[2], heldAmount, addresses[3], uints[1]);
+        emit PositionOpened(msg.sender, positionId, heldToken, heldAmount, addresses[3], uints[1]);
     }
     
     // FOR DELEGATECALL ONLY!
@@ -131,8 +128,7 @@ contract Leverager is DSMath {
         - return collateral
         */
         Position storage position = positions[uints[0]];
-        IERC20 heldToken = address(position.heldToken) == address(0) ? weth : position.heldToken;
-        uint initWethBalance = weth.balanceOf(address(this));
+        IERC20 heldToken = position.heldToken;
 
         for (uint i = 0; i < uints[2]; i++) {
             // Should it include interest?
@@ -140,7 +136,7 @@ contract Leverager is DSMath {
 
             // TODO: EXCHANGE price feed
             uint owedAmountInHeldToken = IExchange(addresses[1]).convertAmountDst(heldToken, position.principalToken, owedAmountInPrincipalToken);
-            uint heldTokenBalance = heldToken.balanceOf(address(this));
+            uint heldTokenBalance = address(heldToken) == ethAddress ? address(this).balance : heldToken.balanceOf(address(this));
 
             // do we have enough tokens to repay all debt?
             if (owedAmountInHeldToken > heldTokenBalance) {
@@ -185,11 +181,10 @@ contract Leverager is DSMath {
             }
         }
 
-        if (address(position.heldToken) == address(0)){
-            uint finalWethBalance = weth.balanceOf(address(this));
-            if (finalWethBalance > initWethBalance){
-                weth.withdraw(sub(finalWethBalance, initWethBalance));
-            }
+        if (address(heldToken) == ethAddress){
+            msg.sender.transfer(address(this).balance);
+        } else {
+            heldToken.transfer(msg.sender, heldToken.balanceOf(address(this)));
         }
 
         positions[uints[0]].isClosed = true;

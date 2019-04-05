@@ -10,9 +10,9 @@ toRawAmount () {
     seth --to-wei $1 $2 | xargs seth --to-uint256
 }
 
-EXCHANGE=0x5771e98875875feb235bd3386b25dbe9dad21704 # `dapp create exchanges/UniswapExchange`
-LENDER=0x943531eb32549d48e3b0321d934fa2ea585d2f61 # `dapp create lenders/MakerDaoLender`
-LEVERAGER=0x9c41904c985b2eab4909a30db82fb041c4af0d22 # `dapp create Leverager`
+EXCHANGE=0x238a19577695384222548ba1cd1cf65d48d027a3 # `dapp create exchanges/UniswapExchange`
+LENDER=0x6b333e3215748e9f0125df8dd6e56776f33a88cf # `dapp create lenders/MakerDaoLender`
+LEVERAGER=0x54966cdbc7a9ef49e8ec54686603c085deefda1b # `dapp create Leverager`
 
 PRINCIPAL=0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359 # DAI
 HELD_ASSET=0x0000000000000000000000000000000000000000 #ETH
