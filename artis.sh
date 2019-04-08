@@ -11,7 +11,7 @@ toRawAmount () {
 }
 
 EXCHANGE=0x238a19577695384222548ba1cd1cf65d48d027a3 # `dapp create exchanges/UniswapExchange`
-LENDER=0x6b333e3215748e9f0125df8dd6e56776f33a88cf # `dapp create lenders/MakerDaoLender`
+LENDER=0xbbe273a1f65cd0a2b1357a00cf50c1d457ad0f20 # `dapp create lenders/MakerDaoLender`
 LEVERAGER=0x54966cdbc7a9ef49e8ec54686603c085deefda1b # `dapp create Leverager`
 
 PRINCIPAL=0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359 # DAI

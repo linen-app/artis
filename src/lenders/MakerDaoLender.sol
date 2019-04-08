@@ -35,6 +35,7 @@ interface ISaiTub {
 
 contract MakerDaoLender is ILender, DSMath {
     using ERC20Lib for IERC20;
+    using ERC20Lib for IWrappedEther;
 
     ISaiTub constant saiTub = ISaiTub(0x448a5065aeBB8E423F0896E6c5D525C040f59af3);
     Vox constant vox = Vox(0x9B0F70Df76165442ca6092939132bBAEA77f2d7A);
@@ -42,7 +43,7 @@ contract MakerDaoLender is ILender, DSMath {
     IERC20 constant peth = IERC20(0xf53AD2c6851052A81B42133467480961B2321C09);
     IERC20 constant dai = IERC20(0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359);
     IERC20 constant mkr = IERC20(0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2);
-    DSValue constant pep = DSValue(0x99041F808D598B782D5a3e498681C2452A31da08);
+    DSValue constant pep = DSValue(0x5C1fc813d9c1B5ebb93889B3d63bA24984CA44B7);
     IExchange constant exchange = IExchange(0x238A19577695384222548BA1cD1CF65D48d027A3);
 
     address constant ethAddress = address(0);
