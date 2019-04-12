@@ -30,7 +30,7 @@ contract UniswapExchange is IExchange {
     // 0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95 - mainnet
     // 0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36 - rinkeby
 
-    UniswapFactoryInterface constant factory = UniswapFactoryInterface(0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95);
+    UniswapFactoryInterface constant factory = UniswapFactoryInterface(0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36);
     address constant ethAddress = address(0);
 
 

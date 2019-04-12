@@ -10,7 +10,7 @@ contract DummyLender is ILender {
     function supplyAndBorrow(
         bytes32 agreementId,
         IERC20 principalToken,
-        uint principalAmount,
+        uint wadCollateralRatio,
         IERC20 collateralToken,
         uint collateralAmount)
     external payable returns (bytes32 _agreementId, uint _principalAmount) {
