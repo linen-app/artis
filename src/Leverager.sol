@@ -23,8 +23,6 @@ contract Leverager is DSMath {
     event PositionOpened(
         address indexed owner,
         uint positionId,
-        // IExchange exchange,
-        // ILender lender,
         address heldToken, 
         uint heldAmount, 
         address principalToken,
@@ -49,7 +47,7 @@ contract Leverager is DSMath {
     // uints[2] =     maxIterations
     // uints[3] =     minCollateralAmount
     // 
-    // arrays in params used to evade "stack too deep" during compilation
+    // Arrays in the parameters are used to evade "stack too deep" error during the compilation
     function openPosition (
         address[4] calldata addresses,
         uint[4] calldata uints
@@ -121,20 +119,12 @@ contract Leverager is DSMath {
         uint[3] calldata uints
     ) external {
 
-        /*
-        - get needed held token amount for swap
-        - swap back to principal
-        - repay principal
-        - return collateral
-        */
         Position storage position = positions[uints[0]];
         IERC20 heldToken = position.heldToken;
 
         for (uint i = 0; i < uints[2]; i++) {
-            // Should it include interest?
             uint owedAmountInPrincipalToken = ILender(addresses[0]).getOwedAmount(position.agreementId, position.principalToken);
 
-            // TODO: EXCHANGE price feed
             uint owedAmountInHeldToken = IExchange(addresses[1]).convertAmountDst(heldToken, position.principalToken, owedAmountInPrincipalToken);
             uint heldTokenBalance = address(heldToken) == ethAddress ? address(this).balance : heldToken.balanceOf(address(this));
 
