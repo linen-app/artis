@@ -24,7 +24,7 @@ contract DummyLender is ILender {
         IERC20 principalToken,
         uint repaymentAmount,
         IERC20 collateralToken,
-        uint withdrawAmount)
+        uint wadCollateralRatio)
     external {
         emit RepayAndReturn(msg.sender);
     }

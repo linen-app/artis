@@ -9,7 +9,7 @@ interface ComptrollerInterface {
     function exitMarket(CToken cToken) external returns (uint);
 }
 
-interface CToken {
+contract CToken is IERC20 {
     /**
      * @notice Sender redeems cTokens in exchange for the underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
@@ -34,6 +34,10 @@ interface CToken {
     function borrow(uint borrowAmount) external returns (uint);
 
     function comptroller() external view returns (ComptrollerInterface) ;
+
+    function borrowBalanceCurrent(address account) external returns (uint);
+
+    function exchangeRateCurrent() external returns (uint);
 }
 
 contract CErc20 is CToken {
@@ -82,7 +86,8 @@ contract CompoundV2Lender is ILender, DSMath {
     using ERC20Lib for IERC20;
 
     address constant ethAddress = address(0);
-    PriceOracle constant priceOracle = PriceOracle(0x04396A3e673980dAfa3BCC1EfD3632f075E57447);
+    PriceOracle constant priceOracle = PriceOracle(0x7FDF35011220E2e3FE624F47A51e1D2B4CaBfB43);
+    address constant cEtherAddress = 0xbED6D9490a7CD81fF0F06f29189160a9641a358F;
 
     event SupplyAndBorrow(address sender);
     event RepayAndReturn(address sender);
@@ -119,7 +124,7 @@ contract CompoundV2Lender is ILender, DSMath {
 
         emit SupplyAndBorrow(msg.sender);
 
-        return (bytes32(uint256(msg.sender) << 96), _principalAmount);
+        return (bytes32(uint256(address(this))), _principalAmount);
     }
 
     function repayAndReturn(
@@ -127,21 +132,40 @@ contract CompoundV2Lender is ILender, DSMath {
         IERC20 principalToken,
         uint repaymentAmount,
         IERC20 collateralToken,
-        uint withdrawAmount)
+        uint wadCollateralRatio)
     external {
+        (bool isEther, CToken principalCToken) = _getCToken(principalToken);
+
+        if (isEther) {
+            CEther cEther = CEther(address(principalCToken));
+            cEther.repayBorrow.value(repaymentAmount)(); // TODO: add require()
+        } else {
+            principalToken.ensureApproval(address(principalCToken));
+            CErc20 cErc20 = CErc20(address(principalCToken));
+            require(cErc20.repayBorrow(repaymentAmount) == 0);
+        }
+
+        (,CToken collateralCToken) = _getCToken(collateralToken);
+
+        address user = address(uint256(agreementId));
+        uint amountToFree = _calcFreeCollateral(user, collateralCToken, wadCollateralRatio, principalCToken);
+        require(collateralCToken.redeemUnderlying(amountToFree) == 0);
+
         emit RepayAndReturn(msg.sender);
     }
 
     function getOwedAmount(bytes32 agreementId, IERC20 principalToken) external returns (uint) {
-        return 0;
+        (,CToken principalCToken) = _getCToken(principalToken);
+        address addr = address(uint256(agreementId));
+        return principalCToken.borrowBalanceCurrent(addr);
     }
 
     function _getCToken(IERC20 token) internal pure returns (bool isEther, CToken) {
         address addr = address(token);
         if (addr == ethAddress) {
-            return (true,  CToken(0x8a9447df1FB47209D36204e6D56767a33bf20f9f)); // CEther
+            return (true,  CToken(cEtherAddress)); // CEther
         } else if (addr == 0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa) {
-            return (false, CToken(0xB5E5D0F8C0cbA267CD3D7035d6AdC8eBA7Df7Cdd)); // cDAI
+            return (false, CToken(0x2ACC448d73e8D53076731fEA2EF3fc38214d0A7d)); // cDAI
         } else {
             revert("Unknown token");
         }
@@ -149,17 +173,47 @@ contract CompoundV2Lender is ILender, DSMath {
 
     // determines how much we can borrow from a lender in order to maintain provided collateral ratio
     function _calcPrincipal(
-        CToken collateralToken,
+        CToken collateralCToken,
         uint collateralAmount,
-        CToken principalToken,
+        CToken principalCToken,
         uint wadMaxBaseRatio
     ) internal returns (uint principalAmount){
-        uint collateralPrice = priceOracle.getUnderlyingPrice(collateralToken);
-        uint principalPrice = priceOracle.getUnderlyingPrice(principalToken);
+        uint collateralPrice = _getPrice(collateralCToken);
+        uint principalPrice = _getPrice(principalCToken);
 
         uint collateralEth = wmul(collateralPrice, collateralAmount);
         uint principalEth = wdiv(collateralEth, wadMaxBaseRatio);
         principalAmount = wdiv(principalEth, principalPrice);
+    }
+
+    function _calcFreeCollateral(
+        address user,
+        CToken collateralCToken,
+        uint wadCollateralRatio,
+        CToken principalCToken
+    ) internal returns (uint freeCollateralAmount) {
+        uint collateralPrice = _getPrice(collateralCToken);
+        uint collateralCTokenAmount = collateralCToken.balanceOf(user);
+        uint collateralRate = collateralCToken.exchangeRateCurrent();
+        uint heldCollateral = wmul(collateralCTokenAmount, collateralRate);
+        uint heldCollateralETH = wmul(heldCollateral, collateralPrice);
+
+        uint principalPrice = _getPrice(principalCToken);
+        uint borrowBalance = principalCToken.borrowBalanceCurrent(user);
+        uint borrowBalanceEth = wmul(borrowBalance, principalPrice);
+
+        uint neededCollateralEth = wmul(borrowBalanceEth, wadCollateralRatio);
+        uint freeCollateralEth = sub(heldCollateralETH, neededCollateralEth);
+
+        freeCollateralAmount = wdiv(freeCollateralEth, collateralPrice);
+    }
+
+    function _getPrice(CToken cToken) internal view returns (uint) {
+        if (address(cToken) == cEtherAddress) {
+            return WAD;
+        }
+
+        return priceOracle.getUnderlyingPrice(cToken);
     }
     
 }
