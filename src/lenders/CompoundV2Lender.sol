@@ -166,6 +166,12 @@ contract CompoundV2Lender is ILender, DSMath {
             return (true,  CToken(cEtherAddress)); // CEther
         } else if (addr == 0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa) {
             return (false, CToken(0x2ACC448d73e8D53076731fEA2EF3fc38214d0A7d)); // cDAI
+        } else if (addr == 0x6e894660985207feb7cf89Faf048998c71E8EE89) {
+            return (false, CToken(0x1c8F7Aca3564c02d1Bf58EbA8571b6fdAfe91f44)); // cREP
+        } else if (addr == 0xddea378A6dDC8AfeC82C36E9b0078826bf9e68B6) {
+            return (false, CToken(0x961aA80B6B44D445387Aa8395c4c6C1a473F4ffD)); // cZRX
+        } else if (addr == 0xbF7A7169562078c96f0eC1A8aFD6aE50f12e5A99) {
+            return (false, CToken(0x1Cae2a350AF04cD2525Aee6Cc8397e03f50C1Af4)); // cBAT
         } else {
             revert("Unknown token");
         }
