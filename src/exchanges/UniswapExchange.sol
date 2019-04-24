@@ -27,14 +27,9 @@ interface UniswapExchangeInterface {
 contract UniswapExchange is IExchange {
     using ERC20Lib for IERC20;
 
-    // 0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95 - mainnet
-    // 0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36 - rinkeby
-
-    UniswapFactoryInterface constant factory = UniswapFactoryInterface(0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36);
+    UniswapFactoryInterface constant factory = UniswapFactoryInterface(0);
     address constant ethAddress = address(0);
 
-
-    // CHECK EVERYTHING!!!
     function convertAmountSrc(IERC20 srcToken, uint srcAmount, IERC20 dstToken) external view returns (uint dstAmount){
         UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
         UniswapExchangeInterface dstExchange = factory.getExchange(dstToken);
@@ -106,4 +101,12 @@ contract UniswapExchange is IExchange {
             }
         }
     }
+}
+
+contract UniswapExchangeRinkeby is UniswapExchange {
+    UniswapFactoryInterface constant factory = UniswapFactoryInterface(0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36);
+}
+
+contract UniswapExchangeMainnet is UniswapExchange {
+    UniswapFactoryInterface constant factory = UniswapFactoryInterface(0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95);
 }

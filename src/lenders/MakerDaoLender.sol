@@ -33,7 +33,7 @@ interface ISaiTub {
     function mat() external view returns (uint);    // Liquidation ratio
 }
 
-contract MakerDaoLender is ILender, DSMath {
+contract MakerDaoLenderMainnet is ILender, DSMath {
     using ERC20Lib for IERC20;
     using ERC20Lib for IWrappedEther;
 

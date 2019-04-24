@@ -82,7 +82,7 @@ interface PriceOracle {
     function getUnderlyingPrice(CToken cToken) external view returns (uint);
 }
 
-contract CompoundV2Lender is ILender, DSMath {
+contract CompoundV2LenderRinkeby is ILender, DSMath {
     using ERC20Lib for IERC20;
 
     address constant ethAddress = address(0);
