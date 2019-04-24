@@ -27,17 +27,13 @@ interface UniswapExchangeInterface {
 contract UniswapExchange is IExchange {
     using ERC20Lib for IERC20;
 
-    // 0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95 - mainnet
-    // 0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36 - rinkeby
+    function factory() internal pure returns (UniswapFactoryInterface);
 
-    UniswapFactoryInterface constant factory = UniswapFactoryInterface(0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95);
     address constant ethAddress = address(0);
 
-
-    // CHECK EVERYTHING!!!
     function convertAmountSrc(IERC20 srcToken, uint srcAmount, IERC20 dstToken) external view returns (uint dstAmount){
-        UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
-        UniswapExchangeInterface dstExchange = factory.getExchange(dstToken);
+        UniswapExchangeInterface srcExchange = factory().getExchange(srcToken);
+        UniswapExchangeInterface dstExchange = factory().getExchange(dstToken);
 
         if (address(srcToken) == ethAddress) {
             dstAmount = dstExchange.getEthToTokenInputPrice(srcAmount);
@@ -50,8 +46,8 @@ contract UniswapExchange is IExchange {
     }
 
     function convertAmountDst(IERC20 srcToken, IERC20 dstToken, uint dstAmount) external view returns (uint srcAmount){
-        UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
-        UniswapExchangeInterface dstExchange = factory.getExchange(dstToken);
+        UniswapExchangeInterface srcExchange = factory().getExchange(srcToken);
+        UniswapExchangeInterface dstExchange = factory().getExchange(dstToken);
 
         if (address(srcToken) == ethAddress) {
             srcAmount = dstExchange.getEthToTokenOutputPrice(dstAmount);
@@ -70,7 +66,7 @@ contract UniswapExchange is IExchange {
         uint deadline = now;
 
         if (address(srcToken) == ethAddress) {
-            UniswapExchangeInterface dstExchange = factory.getExchange(dstToken);
+            UniswapExchangeInterface dstExchange = factory().getExchange(dstToken);
             require(address(dstExchange) != address(0), "Can't find dstToken exchange");
             if (srcAmount == 0) {
                 uint ethNeeded = dstExchange.getEthToTokenOutputPrice(dstAmount);
@@ -81,7 +77,7 @@ contract UniswapExchange is IExchange {
                 revert("Either srcAmount or dstAmount must be 0");
             }
         } else if (address(dstToken) == ethAddress) {
-            UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
+            UniswapExchangeInterface srcExchange = factory().getExchange(srcToken);
             require(address(srcExchange) != address(0), "Can't find srcToken exchange");
 
             srcToken.ensureApproval(address(srcExchange));
@@ -93,7 +89,7 @@ contract UniswapExchange is IExchange {
                 revert("Either srcAmount or dstAmount must be 0");
             }
         } else {
-            UniswapExchangeInterface srcExchange = factory.getExchange(srcToken);
+            UniswapExchangeInterface srcExchange = factory().getExchange(srcToken);
             require(address(srcExchange) != address(0), "Can't find srcToken exchange");
 
             srcToken.ensureApproval(address(srcExchange));
@@ -105,5 +101,17 @@ contract UniswapExchange is IExchange {
                 revert("Either srcAmount or dstAmount must be 0");
             }
         }
+    }
+}
+
+contract UniswapExchangeRinkeby is UniswapExchange {
+    function factory() internal pure returns (UniswapFactoryInterface){
+        return UniswapFactoryInterface(0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36);
+    }
+}
+
+contract UniswapExchangeMainnet is UniswapExchange {
+    function factory() internal pure returns (UniswapFactoryInterface){
+        return UniswapFactoryInterface(0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95);
     }
 }

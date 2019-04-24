@@ -2,7 +2,10 @@
 
 The solution to execute decentralized margin trading on DEXes.
 
-It works with [Uniswap](https://uniswap.io/) and [MakerDAO](https://makerdao.com).
+It works with:
+- [Uniswap](https://uniswap.io/) (exchange)
+- [MakerDAO](https://makerdao.com) (lending protocol, Mainnet only)
+- [Compound V2](ttps://compound.finance/presidio) (lending protocol, Rinkeby only).
 
 More DEXes and lending protocols are coming.
 
@@ -12,7 +15,7 @@ More DEXes and lending protocols are coming.
 
 In this guide, we will open a long ETH positions with DAI as an owed token.
 
-Other token pairs will come once more lending protocols will be integrated.
+Other token pairs will come once Compound v2 will be released to Mainnet.
 
 ### Prerequisites
 - OS: Mac OS or Linux
@@ -47,54 +50,63 @@ export SETH_CHAIN=ethlive
 export ETH_KEYSTORE=~/.ethereum/keystore
 ```
 
+Please note that you need to set `SETH_CHAIN` variable according to the network that you are going to use (`ethlive` or `rinkeby`).
 ### Steps
 
 All commands in a code block can be executed in bash shell
 
-#### 1. Get proxy wallet
+#### 1. Load predefined variables
+
+##### 1.1 Predefined variables and functions can be loaded from `artis-makerdao-mainnet.sh` or `artis-compoundv2-rinkeby.sh` files, depending on protocol and network that you want to use. Those files can be found in the root folder of this repo.
+```
+$ source artis-makerdao-mainnet.sh
+```
+Or
+```
+$ source artis-compoundv2-rinkeby.sh
+```
+
+#### 2. Get proxy wallet
 
 If you used [CDP portal](https://cdp.makerdao.com) before, you most probably already have a proxy wallet, and you can use it for Artis.
 ```
 # check if you have proxy wallet, assossiated with your address
-$ seth call 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "proxies(address)(address)" <your address>
+$ seth call $PROXY_REGISTRY "proxies(address)(address)" <your address>
 ```
 If this command return non-zero code, it's a `DS_PROXY` address, that you can use for further actions.
 
 If you don't have a proxy wallet, you can create a new one. Don't forget to transfer some ether to `ETH_FROM` address, so you can send transactions from it.
 ```
-$ seth send 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "build()"
+$ seth send $PROXY_REGISTRY "build()"
 ```
 You will be promted to enter a password for the keystore file.
 
 To to obtain newly created `DS_PROXY` address, you can execute the next command:
 
 ```
-$ seth call 0x4678f0a6958e4d2bc4f1baf7bc52e8f3564f3fe4 "proxies(address)(address)" <your address>
+$ seth call $PROXY_REGISTRY "proxies(address)(address)" <your address>
 ```
 
-#### 2. Define some variables in bash that will be used to create a transaction
+#### 3. Define some variables in bash that will be used to create a transaction
 
-##### 2.1 Predefined variables and functions can be loaded from `artis.sh` file (can be found in the root folder of this repo):
-```
-$ source artis.sh
-```
-
-##### 2.2 Specify address of `DS_PROXY` from the previous step
+##### 3.1 Specify address of `DS_PROXY` from the previous step
 ```
 $ DS_PROXY=<address of proxy wallet from the previous step>
 ```
 
-##### 2.3 Specify the amount of the initial deposit (in ETH):
+##### 3.2 Specify the amount of the initial deposit (in ETH):
 Minimum supported value: 0.01 ETH
 ```
 $ AMOUNT=1.1 # specify desired value
 ```
 
-##### 2.4 Specify collateral ratio that the underlying position will have
+##### 3.3 Specify collateral ratio that the underlying position will have
 
 Smaller values will give you more leverage, however, they give you more risk of liquidation: in case if ETH will go down relatively to DAI and your initial deposit becomes too small to cover minimal collateral ratio and your initial deposit will be seized.
 
-Minimal amount: 1.5 (very risky). Recommended amount: 1.7
+Minimal amount for Mainnet: 1.5 (very risky). Recommended amount: 1.7
+
+Minimal amount for Rinkeby: 2. Recommended amount: 2.1
 
 Max theoretical leverage table (exchange fees and interest are not included in this calculation):
 
@@ -110,7 +122,7 @@ Max theoretical leverage table (exchange fees and interest are not included in t
 ```
 $ COLL_RATIO=1.7 # specify desired value
 ```
-#### 3. Send `openPosition` transaction
+#### 4. Send `openPosition` transaction
 Transaction will go through your proxy wallet, so the calldata needs to be formed manually
 ```
 # Calculate function signature
